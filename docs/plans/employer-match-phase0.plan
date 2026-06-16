@@ -1,0 +1,344 @@
+# Employer Match Phase 0 Team Plan
+
+## Purpose
+
+Build a small, high-quality Phase 0 foundation for the employer matching layer.
+The goal is not to ship the full product yet. The goal is to give the team a
+clear implementation target for a Python CLI package that reads a job
+description, scores it against the six fixed PathCredits competencies, and
+prints a 100-point employer weight vector with scoring detail.
+
+Phase 0 is intentionally narrow:
+
+- CLI only.
+- Embedding-only.
+- No API.
+- No UI.
+- No candidate ranking.
+- No LLM provider implementation.
+
+## Source Inputs
+
+Use these documents as the implementation source of truth:
+
+- `nlp.md`
+- `rubric-scoring-architecture (1).html`
+- `/Users/gsharsh/Downloads/pathcredits_rubric_long.json`
+- `/Users/gsharsh/Downloads/cursor-build-prompt.md`
+
+The Cursor build prompt supersedes earlier Ollama embedding ideas for Phase 0.
+Phase 0 should use local in-process `sentence-transformers`, not Ollama.
+
+## Fixed Competencies
+
+The six competencies are fixed and must remain in this order:
+
+1. `effective_communicator`
+2. `global_citizen`
+3. `creative_innovator`
+4. `critical_thinker`
+5. `reflective_future_focused`
+6. `career_ready`
+
+## Phase 0 Technical Decisions
+
+- Python 3.11+.
+- Package name: `employer_match`.
+- Default embedding model: `BAAI/bge-base-en-v1.5`.
+- Core dependencies: `sentence-transformers`, `numpy`.
+- Phase 1 may add `pandas` for PathCredits CSV ingestion.
+- Optional LLM dependencies must not be required in Phase 0.
+- Embed only rubric `levels`; never embed `_meta` or `definition`.
+- L2-normalize all vectors so cosine similarity is a dot product.
+- Treat JD text and rubric level descriptions symmetrically.
+- Keep a calibration baseline hook in the scoring formula, defaulting to zero.
+
+## Target Project Structure
+
+```text
+employer_match/
+├── data/
+│   └── rubric.json
+├── config.py
+├── rubric_store.py
+├── embedder.py
+├── scorer.py
+├── llm/
+│   ├── base.py
+│   ├── ollama_provider.py
+│   ├── gemini_provider.py
+│   └── claude_provider.py
+├── matcher.py
+├── pipeline.py
+└── cli.py
+```
+
+Only build the Phase 0 pieces now:
+
+- `config.py`
+- `rubric_store.py`
+- `embedder.py`
+- `scorer.py`
+- `pipeline.py`
+- `cli.py`
+- `data/rubric.json`
+
+LLM providers and matcher can remain absent or stubbed only if needed for import
+stability. Do not implement their behavior in Phase 0.
+
+## Phase 0 CLI Contract
+
+The required user-facing command is:
+
+```bash
+python -m employer_match.cli --jd path/to/jd.txt
+```
+
+The CLI should print:
+
+- A six-entry weight vector summing to `100`.
+- Per-competency matched level.
+- Per-competency peak similarity.
+- Full level similarities for levels `0` through `5`.
+- A clear fallback message when the JD is empty or all raw weights are zero.
+
+The CLI may accept this future-compatible flag:
+
+```bash
+python -m employer_match.cli --jd path/to/jd.txt --llm off
+```
+
+In Phase 0, only `--llm off` should be accepted.
+
+## Data Contracts
+
+### Rubric JSON
+
+The rubric must use the provided PathCredits shape:
+
+```json
+{
+  "_meta": {
+    "competency_order": ["...six ids..."]
+  },
+  "effective_communicator": {
+    "definition": "human-only text",
+    "levels": {
+      "0": "level description",
+      "1": "level description",
+      "2": "level description",
+      "3": "level description",
+      "4": "level description",
+      "5": "level description"
+    }
+  }
+}
+```
+
+`definition` is for humans only. It must not be embedded.
+
+### Per-Competency Result
+
+```json
+{
+  "competency_id": "effective_communicator",
+  "level_similarities": {
+    "0": 0.08,
+    "1": 0.12,
+    "2": 0.18,
+    "3": 0.24,
+    "4": 0.30,
+    "5": 0.34
+  },
+  "matched_level": 5,
+  "peak_similarity": 0.34,
+  "raw_weight": 1.70
+}
+```
+
+### Weight Vector
+
+```json
+{
+  "effective_communicator": 23.0,
+  "global_citizen": 12.0,
+  "creative_innovator": 15.0,
+  "critical_thinker": 24.0,
+  "reflective_future_focused": 10.0,
+  "career_ready": 16.0
+}
+```
+
+The values must sum to the configured `weight_budget`, default `100`.
+
+## Scoring Algorithm
+
+1. Load and validate the rubric.
+2. Embed the 36 rubric level descriptions once.
+3. Cache rubric vectors using model name plus rubric hash.
+4. Split the JD into sentences.
+5. Embed each JD sentence.
+6. For each competency and level, compute:
+
+   ```text
+   sim(competency, level) = max cosine(sentence_vector, level_vector)
+   ```
+
+7. Choose the matched level with the highest level similarity.
+8. Compute:
+
+   ```text
+   raw_weight = matched_level * max(peak_similarity - baseline, 0)
+   ```
+
+9. Normalize raw weights across all six competencies:
+
+   ```text
+   W[c] = raw_weight[c] / sum(raw_weight) * weight_budget
+   ```
+
+10. If all raw weights are zero, return uniform weights.
+
+## Team Ownership
+
+### Engineer 1: Foundation And Rubric Store
+
+Owns package setup and rubric correctness.
+
+Tasks:
+
+- Create `pyproject.toml`.
+- Add `employer_match/config.py`.
+- Add `employer_match/rubric_store.py`.
+- Copy the provided rubric to `employer_match/data/rubric.json`.
+- Validate exact competency order.
+- Validate levels `"0"` through `"5"` for each competency.
+- Ensure embedder input exposes level descriptions only.
+- Add rubric validation tests.
+
+Done when:
+
+- The provided rubric loads successfully.
+- Invalid rubric shapes fail with clear errors.
+- Tests prove definitions are not embedded.
+
+### Engineer 2: Embedding And Scoring Core
+
+Owns deterministic scoring.
+
+Tasks:
+
+- Add `employer_match/embedder.py`.
+- Add `employer_match/scorer.py`.
+- Load the configured `sentence-transformers` model.
+- Embed and cache rubric level vectors.
+- Normalize vectors.
+- Split and embed JD sentences.
+- Compute max sentence-to-level similarities.
+- Produce matched levels, peak similarities, raw weights, and normalized weights.
+- Implement uniform fallback for empty or zero-signal inputs.
+
+Done when:
+
+- Cached rubric vectors are reused after first build.
+- Weights always sum to `100`.
+- Empty JD does not crash.
+- Unit tests cover vector math, normalization, fallback, and mocked scoring.
+
+### Engineer 3: CLI, Pipeline, And Documentation
+
+Owns the usable workflow.
+
+Tasks:
+
+- Add `employer_match/pipeline.py`.
+- Add `employer_match/cli.py`.
+- Add `examples/sample_jd.txt`.
+- Add or update `README.md`.
+- Wire the CLI from JD path to formatted scoring output.
+- Document setup, dependencies, cache behavior, CLI usage, and known limits.
+
+Done when:
+
+- `python -m employer_match.cli --jd examples/sample_jd.txt` prints all six
+  weights and per-competency details.
+- README clearly separates Phase 0 from later phases.
+- The team can run the same commands locally without guessing.
+
+## Required Tests
+
+Add tests for:
+
+- Rubric loader accepts the provided rubric.
+- Rubric loader rejects missing level keys.
+- Definitions and `_meta` are not included in embedder inputs.
+- Cosine similarity works on known vectors.
+- Weight normalization sums to 100.
+- All-zero raw weights return uniform weights.
+- Empty JD returns a graceful fallback.
+- CLI exits successfully for `examples/sample_jd.txt`.
+
+Use mocks or fakes for embedding-heavy tests so CI and local validation do not
+depend on downloading a model for every test run.
+
+## Quality Gates
+
+Run before merging implementation:
+
+```bash
+pytest
+ruff check .
+ruff format --check .
+python -m employer_match.cli --jd examples/sample_jd.txt
+```
+
+## Later Phases
+
+### Phase 1: Candidate Matching
+
+Add `matcher.py` and PathCredits CSV ingestion. Combine employer weights `W`
+with candidate competency scores `S` using:
+
+```text
+match_score = sum(W * S) / sum(W)
+```
+
+Sort candidates descending by match score.
+
+### Phase 2: Optional LLM Review
+
+Add provider abstraction for `off`, `ollama`, `gemini`, and `claude`.
+Use the LLM only when scoring is uncertain, such as low peak similarity, close
+top-two margin, or negation cues. On any provider or parse failure, fall back to
+the deterministic embedding score.
+
+### Phase 3: Employer Form
+
+Add a UI where employers paste a JD, preview generated weights, adjust sliders,
+and confirm the final employer preference vector.
+
+### Phase 4: Calibration
+
+Populate per-competency baselines from reference JDs. The Phase 0 scoring formula
+already includes the baseline subtraction so calibration can be added without a
+core scoring refactor.
+
+## Phase 0 Definition Of Done
+
+Phase 0 is done when a teammate can run one CLI command on a sample JD and see:
+
+- Six competency weights.
+- A total weight budget of `100`.
+- Matched rubric level per competency.
+- Peak similarity per competency.
+- All six level similarities per competency.
+- Rubric vectors cached after the first run.
+- No network calls or LLM calls.
+
+## Collaboration Rules
+
+- Keep PRs small and phase-scoped.
+- Do not add API, UI, ranking, or LLM provider behavior during Phase 0.
+- Prefer tests with mocked embeddings for speed and repeatability.
+- Treat scoring outputs as decision support, not calibrated truth, until Phase 4.
+- Update this plan if the team intentionally changes Phase boundaries.
