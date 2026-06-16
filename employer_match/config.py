@@ -6,8 +6,7 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Config:
-    embedding_model: str = "nomic-embed-text:v1.5"
-    ollama_base_url: str = "http://localhost:11434"
+    embedding_model: str = "BAAI/bge-base-en-v1.5"
     weight_budget: float = 100.0
     llm_provider: str = "off"
     cache_dir: Path = Path(".cache/employer_match")

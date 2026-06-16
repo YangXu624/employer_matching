@@ -1,7 +1,7 @@
 import numpy as np
 
 from employer_match.config import DEFAULT_CONFIG
-from employer_match.embedder import build_rubric_index
+from employer_match.embedder import SentenceTransformerEmbedder, build_rubric_index
 from employer_match.rubric_store import COMPETENCY_ORDER, LevelDescription, Rubric
 from employer_match.scorer import (
     cosine_similarity,
@@ -104,7 +104,6 @@ def test_split_sentences_handles_punctuation_and_whitespace():
 def test_rubric_index_is_reused_from_cache(tmp_path):
     config = DEFAULT_CONFIG.__class__(
         embedding_model=DEFAULT_CONFIG.embedding_model,
-        ollama_base_url=DEFAULT_CONFIG.ollama_base_url,
         weight_budget=DEFAULT_CONFIG.weight_budget,
         llm_provider=DEFAULT_CONFIG.llm_provider,
         cache_dir=tmp_path,
@@ -118,3 +117,27 @@ def test_rubric_index_is_reused_from_cache(tmp_path):
     assert embedder.calls == 1
     assert first.rubric_hash == second.rubric_hash
     assert (tmp_path / f"rubric-fake-embedder-{first.rubric_hash[:16]}.json").exists()
+
+
+def test_default_embedder_uses_sentence_transformers_model(monkeypatch):
+    created_models = []
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name):
+            created_models.append(model_name)
+
+        def encode(self, texts, convert_to_numpy, normalize_embeddings):
+            assert convert_to_numpy is True
+            assert normalize_embeddings is False
+            return np.array([[1.0, 2.0] for _ in texts])
+
+    monkeypatch.setattr(
+        "employer_match.embedder.SentenceTransformer",
+        FakeSentenceTransformer,
+    )
+
+    embedder = SentenceTransformerEmbedder()
+
+    assert created_models == ["BAAI/bge-base-en-v1.5"]
+    assert embedder.model_name == "BAAI/bge-base-en-v1.5"
+    assert embedder.embed_texts(["hello"]).tolist() == [[1.0, 2.0]]

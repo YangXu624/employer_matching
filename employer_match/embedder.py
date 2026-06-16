@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
 from employer_match.config import Config, DEFAULT_CONFIG
 from employer_match.rubric_store import Rubric, collect_level_texts
@@ -18,41 +17,25 @@ class EmbeddingDependencyError(RuntimeError):
     """Raised when the configured embedding provider cannot produce embeddings."""
 
 
-class OllamaEmbedder:
-    def __init__(
-        self,
-        model_name: str = DEFAULT_CONFIG.embedding_model,
-        base_url: str = DEFAULT_CONFIG.ollama_base_url,
-        timeout_seconds: int = 120,
-    ):
+class SentenceTransformerEmbedder:
+    def __init__(self, model_name: str = DEFAULT_CONFIG.embedding_model):
         self.model_name = model_name
-        self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = timeout_seconds
+        try:
+            self._model = SentenceTransformer(model_name)
+        except Exception as exc:
+            raise EmbeddingDependencyError(
+                f"Could not load sentence-transformers model {model_name!r}."
+            ) from exc
 
     def embed_texts(self, texts: list[str]) -> np.ndarray:
         if not texts:
             return np.empty((0, 0), dtype=float)
-        request = urllib.request.Request(
-            f"{self.base_url}/api/embed",
-            data=json.dumps({"model": self.model_name, "input": texts}).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        vectors = self._model.encode(
+            texts,
+            convert_to_numpy=True,
+            normalize_embeddings=False,
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except urllib.error.URLError as exc:
-            raise EmbeddingDependencyError(
-                "Could not reach Ollama at "
-                f"{self.base_url}. Start it with `brew services start ollama`."
-            ) from exc
-
-        embeddings = payload.get("embeddings")
-        if not isinstance(embeddings, list):
-            raise EmbeddingDependencyError(
-                f"Ollama response did not include embeddings for model {self.model_name}."
-            )
-        return np.asarray(embeddings, dtype=float)
+        return np.asarray(vectors, dtype=float)
 
 
 @dataclass(frozen=True)

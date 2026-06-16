@@ -12,7 +12,7 @@ with per-competency scoring details.
 Included:
 
 - Python CLI package named `employer_match`.
-- Local Ollama embeddings with `nomic-embed-text:v1.5`.
+- In-process `sentence-transformers` embeddings.
 - Rubric loading and validation.
 - Rubric vector caching.
 - Deterministic cosine-similarity scoring.
@@ -32,13 +32,11 @@ Excluded until later phases:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e ".[dev]"
-brew install ollama
-brew services start ollama
-ollama pull nomic-embed-text:v1.5
 ```
 
-The scorer calls the local Ollama HTTP API at `http://localhost:11434` by
-default. The embedding model is `nomic-embed-text:v1.5`.
+Phase 0 uses the configured sentence-transformers model in-process. The default
+model is `BAAI/bge-base-en-v1.5`; the first real scoring run downloads it if it
+is not already present locally.
 
 ## Usage
 
@@ -58,7 +56,7 @@ rejected in Phase 0.
 ## Cache
 
 Rubric embeddings are cached under `.cache/employer_match/` by default. The cache
-key includes the Ollama embedding model name and a hash of the rubric level
+key includes the embedding model name and a hash of the rubric level
 descriptions.
 
 ## Quality Gates
@@ -75,3 +73,6 @@ python -m employer_match.cli --jd examples/sample_jd.txt
 The Phase 0 scorer is deterministic and embedding-only. It can miss negation or
 relative emphasis in subtle job descriptions. Treat outputs as decision support
 until later calibration and optional LLM review phases are implemented.
+
+Ollama may be worth trying in a later phase as an alternate embedding provider,
+but it is not part of the Phase 0 runtime.
