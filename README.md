@@ -17,6 +17,7 @@ Included:
 - Rubric vector caching.
 - Deterministic cosine-similarity scoring.
 - Uniform fallback for empty or zero-signal inputs.
+- **Scoring Rationale (1-5 Scale):** The system evaluates competencies on a 1-5 scale (excluding level 0). This ensures that every competency receives a baseline non-zero weight, preventing "zero-signal" drop-offs for skills not explicitly detailed in short Job Descriptions.
 
 Excluded until later phases:
 

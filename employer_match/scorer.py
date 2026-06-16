@@ -69,7 +69,7 @@ def uniform_result(reason: str, budget: float = DEFAULT_CONFIG.weight_budget) ->
         CompetencyScore(
             competency_id=competency_id,
             level_similarities={int(level): 0.0 for level in LEVEL_KEYS},
-            matched_level=0,
+            matched_level=1,
             peak_similarity=0.0,
             raw_weight=0.0,
         )
@@ -105,7 +105,7 @@ def score_job_description(
 
     for competency_id in rubric.competency_order:
         level_similarities = {}
-        for level in range(6):
+        for level in range(1, 6):
             level_vector = rubric_index.vectors[competency_id][level]
             similarities = sentence_vectors @ level_vector
             level_similarities[level] = float(np.max(similarities))

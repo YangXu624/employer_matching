@@ -33,7 +33,6 @@ def make_test_rubric():
     for competency_id in COMPETENCY_ORDER:
         descriptions.extend(
             [
-                LevelDescription(competency_id, 0, "routine"),
                 LevelDescription(competency_id, 1, "routine"),
                 LevelDescription(competency_id, 2, "analysis"),
                 LevelDescription(competency_id, 3, "analysis"),
@@ -90,7 +89,7 @@ def test_scoring_returns_six_competency_results_with_weights():
     assert len(result.competencies) == 6
     assert result.competencies[0].matched_level == 5
     assert result.competencies[0].peak_similarity == 1.0
-    assert set(result.competencies[0].level_similarities) == {0, 1, 2, 3, 4, 5}
+    assert set(result.competencies[0].level_similarities) == {1, 2, 3, 4, 5}
 
 
 def test_split_sentences_handles_punctuation_and_whitespace():

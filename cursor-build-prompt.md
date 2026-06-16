@@ -47,27 +47,28 @@ employer_match/
 ```
 {
   "_meta": { "competency_order": [ ...6 ids... ], ...notes... },
-  "<competency_id>": {
+  "effective_communicator": {
     "definition": "human-only — DO NOT EMBED THIS",
-    "levels": { "0": "...", "1": "...", "2": "...", "3": "...", "4": "...", "5": "..." }
+    "levels": { "1": "...", "2": "...", "3": "...", "4": "...", "5": "..." }
   },
   ... 6 competencies
-}
-```
+  }
+  ```
 
-Embed **only** the six `levels` strings per competency. Never embed `definition` or `_meta`.
+  Embed **only** the five `levels` strings per competency. Never embed `definition` or `_meta`.
 
-### Per-competency result (intermediate)
+  ### Per-competency result (intermediate)
 
-```
-{
+  ```
+  {
   "competency_id": "effective_communicator",
-  "level_similarities": {"5": 0.34, "4": 0.30, "3": 0.24, "2": 0.18, "1": 0.12, "0": 0.08},
+  "level_similarities": {"5": 0.34, "4": 0.30, "3": 0.24, "2": 0.18, "1": 0.12},
   "matched_level": 5,
   "peak_similarity": 0.34,
   "raw_weight": 1.70
-}
-```
+  }
+  ```
+
 
 ### Weight vector `W` (this layer's output) — sums to `weight_budget`
 
@@ -112,7 +113,7 @@ Return `W` plus the list of per-competency results.
 - (Optional, nice-to-have) a regex negation cue near competency terms.
 
 ### LLM refine (provider, when selected and fired)
-Input: JD text, the rubric levels, and the baseline `W` + matched levels. Ask the model to correct **only** negation and relative-emphasis errors, returning JSON: per competency an adjusted level (0–5), a one-line reason, and the JD sentence it relied on. Recombine and re-normalize exactly as in scoring. Always parse defensively; on any parse/error, fall back to the baseline `W`.
+Input: JD text, the rubric levels, and the baseline `W` + matched levels. Ask the model to correct **only** negation and relative-emphasis errors, returning JSON: per competency an adjusted level (1–5), a one-line reason, and the JD sentence it relied on. Recombine and re-normalize exactly as in scoring. Always parse defensively; on any parse/error, fall back to the baseline `W`.
 
 ## LLM provider abstraction (the switch)
 
@@ -146,7 +147,7 @@ CONFIG = {
 ```
 python -m employer_match.cli --jd path/to/jd.txt [--llm off|ollama|gemini|claude]
 ```
-Prints the weight vector and, per competency, the matched level, peak similarity, and all six level similarities. (Phase 1 adds `--scores path/to/scores.csv` to also print the ranked candidates.)
+Prints the weight vector and, per competency, the matched level, peak similarity, and all five level similarities. (Phase 1 adds `--scores path/to/scores.csv` to also print the ranked candidates.)
 
 ## Build phases
 

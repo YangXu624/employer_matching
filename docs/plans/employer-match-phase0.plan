@@ -174,7 +174,7 @@ The values must sum to the configured `weight_budget`, default `100`.
 ## Scoring Algorithm
 
 1. Load and validate the rubric.
-2. Embed the 36 rubric level descriptions once.
+2. Embed the 30 rubric level descriptions once.
 3. Cache rubric vectors using model name plus rubric hash.
 4. Split the JD into sentences.
 5. Embed each JD sentence.
@@ -212,7 +212,7 @@ Tasks:
 - Add `employer_match/rubric_store.py`.
 - Copy the provided rubric to `employer_match/data/rubric.json`.
 - Validate exact competency order.
-- Validate levels `"0"` through `"5"` for each competency.
+- Validate levels `"1"` through `"5"` for each competency.
 - Ensure embedder input exposes level descriptions only.
 - Add rubric validation tests.
 
@@ -331,7 +331,7 @@ Phase 0 is done when a teammate can run one CLI command on a sample JD and see:
 - A total weight budget of `100`.
 - Matched rubric level per competency.
 - Peak similarity per competency.
-- All six level similarities per competency.
+- All five level similarities per competency.
 - Rubric vectors cached after the first run.
 - No network calls or LLM calls during scoring, except the first local model
   download if the configured sentence-transformers model is not already cached.

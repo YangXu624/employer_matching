@@ -8,7 +8,7 @@ def test_rubric_loads_fixed_competencies():
     rubric = load_rubric()
 
     assert rubric.competency_order == COMPETENCY_ORDER
-    assert len(rubric.level_descriptions) == 36
+    assert len(rubric.level_descriptions) == 30
 
 
 def test_uniform_fallback_empty_jd_shape():

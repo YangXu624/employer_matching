@@ -15,7 +15,7 @@ COMPETENCY_ORDER = [
     "career_ready",
 ]
 
-LEVEL_KEYS = ["0", "1", "2", "3", "4", "5"]
+LEVEL_KEYS = ["1", "2", "3", "4", "5"]
 
 
 class RubricValidationError(ValueError):
