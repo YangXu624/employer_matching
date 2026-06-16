@@ -1,64 +1,115 @@
-import os
-import pickle
+from __future__ import annotations
+
 import hashlib
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
 import numpy as np
-from typing import List, Dict, Any
 from sentence_transformers import SentenceTransformer
 
+from employer_match.config import Config, DEFAULT_CONFIG
+from employer_match.rubric_store import Rubric, collect_level_texts
+from employer_match.scorer import l2_normalize_matrix
 
-class Embedder:
-    def __init__(self, model_name: str = "BAAI/bge-base-en-v1.5"):
+
+class EmbeddingDependencyError(RuntimeError):
+    """Raised when the configured embedding provider cannot produce embeddings."""
+
+
+class SentenceTransformerEmbedder:
+    def __init__(self, model_name: str = DEFAULT_CONFIG.embedding_model):
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
-        self.cache_dir = os.path.join(os.path.dirname(__file__), ".cache")
-        os.makedirs(self.cache_dir, exist_ok=True)
+        try:
+            self._model = SentenceTransformer(model_name)
+        except Exception as exc:
+            raise EmbeddingDependencyError(
+                f"Could not load sentence-transformers model {model_name!r}."
+            ) from exc
 
-    def embed(self, texts: List[str]) -> np.ndarray:
-        """Embed texts and L2-normalize the vectors."""
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
         if not texts:
-            return np.array([])
-
-        # sentence-transformers can normalize during encode
-        embeddings = self.model.encode(texts, normalize_embeddings=True)
-        return embeddings
-
-    def get_rubric_embeddings(
-        self, rubric_data: Dict[str, Any]
-    ) -> Dict[str, Dict[str, np.ndarray]]:
-        """
-        Embed all rubric level descriptions and cache them.
-        Structure: {comp_id: {level_str: vector}}
-        """
-        # Create a hash of the rubric levels to detect changes
-        rubric_content = ""
-        competencies = sorted(rubric_data.keys())
-        if "_meta" in competencies:
-            competencies.remove("_meta")
-
-        for comp_id in competencies:
-            levels = rubric_data[comp_id]["levels"]
-            for level in sorted(levels.keys()):
-                rubric_content += levels[level]
-
-        rubric_hash = hashlib.md5(rubric_content.encode()).hexdigest()
-        safe_model_name = self.model_name.replace("/", "_")
-        cache_file = os.path.join(
-            self.cache_dir, f"rubric_vectors_{safe_model_name}_{rubric_hash}.pkl"
+            return np.empty((0, 0), dtype=float)
+        vectors = self._model.encode(
+            texts,
+            convert_to_numpy=True,
+            normalize_embeddings=False,
         )
+        return np.asarray(vectors, dtype=float)
 
-        if os.path.exists(cache_file):
-            with open(cache_file, "rb") as f:
-                return pickle.load(f)
 
-        # Otherwise, compute and cache
-        result = {}
-        for comp_id in competencies:
-            levels = rubric_data[comp_id]["levels"]
-            level_texts = [levels[str(i)] for i in range(6)]
-            vectors = self.embed(level_texts)
-            result[comp_id] = {str(i): vectors[i] for i in range(6)}
+@dataclass(frozen=True)
+class RubricEmbeddingIndex:
+    model_name: str
+    rubric_hash: str
+    vectors: dict[str, dict[int, np.ndarray]]
 
-        with open(cache_file, "wb") as f:
-            pickle.dump(result, f)
 
-        return result
+def rubric_hash(rubric: Rubric) -> str:
+    payload = [
+        {
+            "competency_id": description.competency_id,
+            "level": description.level,
+            "text": description.text,
+        }
+        for description in rubric.level_descriptions
+    ]
+    encoded = json.dumps(payload, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def cache_path(config: Config, model_name: str, rubric_digest: str) -> Path:
+    safe_model = model_name.replace("/", "__").replace(":", "_")
+    return config.cache_dir / f"rubric-{safe_model}-{rubric_digest[:16]}.json"
+
+
+def build_rubric_index(
+    rubric: Rubric, embedder, config: Config = DEFAULT_CONFIG
+) -> RubricEmbeddingIndex:
+    model_name = getattr(embedder, "model_name", config.embedding_model)
+    digest = rubric_hash(rubric)
+    path = cache_path(config, model_name, digest)
+    if path.exists():
+        return load_rubric_index(path)
+
+    texts = collect_level_texts(rubric)
+    vectors = l2_normalize_matrix(embedder.embed_texts(texts))
+    by_competency: dict[str, dict[int, np.ndarray]] = {}
+    for description, vector in zip(rubric.level_descriptions, vectors, strict=True):
+        by_competency.setdefault(description.competency_id, {})[description.level] = vector
+
+    index = RubricEmbeddingIndex(
+        model_name=model_name,
+        rubric_hash=digest,
+        vectors=by_competency,
+    )
+    save_rubric_index(index, path)
+    return index
+
+
+def save_rubric_index(index: RubricEmbeddingIndex, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "model_name": index.model_name,
+        "rubric_hash": index.rubric_hash,
+        "vectors": {
+            competency_id: {str(level): vector.tolist() for level, vector in level_vectors.items()}
+            for competency_id, level_vectors in index.vectors.items()
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def load_rubric_index(path: Path) -> RubricEmbeddingIndex:
+    payload = json.loads(path.read_text())
+    return RubricEmbeddingIndex(
+        model_name=payload["model_name"],
+        rubric_hash=payload["rubric_hash"],
+        vectors={
+            competency_id: {
+                int(level): np.asarray(vector, dtype=float)
+                for level, vector in level_vectors.items()
+            }
+            for competency_id, level_vectors in payload["vectors"].items()
+        },
+    )

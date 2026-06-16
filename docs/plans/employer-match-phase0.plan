@@ -333,7 +333,10 @@ Phase 0 is done when a teammate can run one CLI command on a sample JD and see:
 - Peak similarity per competency.
 - All six level similarities per competency.
 - Rubric vectors cached after the first run.
-- No network calls or LLM calls.
+- No network calls or LLM calls during scoring, except the first local model
+  download if the configured sentence-transformers model is not already cached.
+
+Ollama can be revisited in a later phase as an alternate embedding provider.
 
 ## Collaboration Rules
 

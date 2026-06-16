@@ -1,19 +1,31 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "employer_match"
+name = "employer-match"
 version = "0.1.0"
-description = "Phase 0: Job Description to Competency Weights"
+description = "Phase 0 employer JD-to-competency weight scorer for PathCredits."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "sentence-transformers",
-    "numpy",
+    "numpy>=1.26",
+    "sentence-transformers>=3.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "ruff",
+    "pytest>=8.0",
+    "ruff>=0.6",
 ]
 
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build-meta"
+[tool.setuptools]
+packages = ["employer_match"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+employer_match = ["data/*.json"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

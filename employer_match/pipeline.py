@@ -1,27 +1,21 @@
-from typing import Dict, List, Any, Tuple
-from .rubric_store import RubricStore
-from .embedder import Embedder
-from .scorer import Scorer
-from .config import CONFIG
+from __future__ import annotations
+
+from pathlib import Path
+
+from employer_match.config import Config, DEFAULT_CONFIG
+from employer_match.embedder import SentenceTransformerEmbedder
+from employer_match.rubric_store import load_rubric
+from employer_match.scorer import ScoreResult, score_job_description
 
 
-class Pipeline:
-    def __init__(self):
-        self.rubric_store = RubricStore()
-        self.embedder = Embedder(CONFIG["embedding_model"])
-
-        # Pre-cache rubric vectors
-        rubric_data = self.rubric_store.data
-        self.rubric_vectors = self.embedder.get_rubric_embeddings(rubric_data)
-
-        self.scorer = Scorer(self.rubric_vectors)
-
-    def run(self, jd_text: str) -> Tuple[Dict[str, float], List[Dict[str, Any]]]:
-        """Runs the Phase 0 pipeline: JD -> Weights."""
-        if not jd_text.strip():
-            return self.scorer.score("", None)
-
-        sentences = self.scorer.split_into_sentences(jd_text)
-        jd_vectors = self.embedder.embed(sentences)
-
-        return self.scorer.score(jd_text, jd_vectors)
+def score_jd_file(
+    jd_path: Path,
+    rubric_path: Path | None = None,
+    config: Config = DEFAULT_CONFIG,
+) -> tuple[ScoreResult, Path]:
+    rubric = load_rubric(rubric_path)
+    embedder = SentenceTransformerEmbedder(config.embedding_model)
+    jd_text = jd_path.read_text()
+    return score_job_description(jd_text, rubric, embedder, config), rubric_path or Path(
+        "employer_match/data/rubric.json"
+    )

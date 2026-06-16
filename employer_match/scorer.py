@@ -1,88 +1,136 @@
-import numpy as np
+from __future__ import annotations
+
 import re
-from typing import List, Dict, Any, Tuple
-from .config import CONFIG
+from dataclasses import dataclass
+
+import numpy as np
+
+from employer_match.config import Config, DEFAULT_CONFIG
+from employer_match.rubric_store import COMPETENCY_ORDER, LEVEL_KEYS, Rubric
 
 
-class Scorer:
-    def __init__(self, rubric_vectors: Dict[str, Dict[str, np.ndarray]]):
-        self.rubric_vectors = rubric_vectors
-        self.competency_order = [
-            "effective_communicator",
-            "global_citizen",
-            "creative_innovator",
-            "critical_thinker",
-            "reflective_future_focused",
-            "career_ready",
-        ]
+@dataclass(frozen=True)
+class CompetencyScore:
+    competency_id: str
+    level_similarities: dict[int, float]
+    matched_level: int
+    peak_similarity: float
+    raw_weight: float
 
-    def split_into_sentences(self, text: str) -> List[str]:
-        """Simple sentence splitter."""
-        if not text:
-            return []
-        # Split by ., !, ?, or newline, keeping some context
-        sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
-        return [s.strip() for s in sentences if s.strip()]
 
-    def score(
-        self, jd_text: str, jd_vectors: np.ndarray
-    ) -> Tuple[Dict[str, float], List[Dict[str, Any]]]:
-        """
-        Computes weights and per-competency details.
-        jd_vectors: matrix of (num_sentences, vector_dim)
-        """
-        results = []
-        raw_weights = {}
+@dataclass(frozen=True)
+class ScoreResult:
+    weights: dict[str, float]
+    competencies: list[CompetencyScore]
+    used_uniform_fallback: bool
+    fallback_reason: str | None = None
 
-        # If JD is empty or no vectors, return uniform
-        if not jd_text.strip() or jd_vectors.size == 0:
-            uniform_weight = CONFIG["weight_budget"] / len(self.competency_order)
-            weights = {comp: uniform_weight for comp in self.competency_order}
-            return weights, []
 
-        for comp_id in self.competency_order:
-            comp_vectors = self.rubric_vectors[comp_id]  # { "0": vec, ... }
+def l2_normalize_matrix(vectors: np.ndarray) -> np.ndarray:
+    matrix = np.asarray(vectors, dtype=float)
+    if matrix.ndim == 1:
+        matrix = matrix.reshape(1, -1)
+    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
+    return np.divide(matrix, norms, out=np.zeros_like(matrix, dtype=float), where=norms != 0)
 
-            level_similarities = {}
-            for level_str in [str(i) for i in range(6)]:
-                level_vec = comp_vectors[level_str]
-                # sim(c, L) = max over JD sentences of cosine(sentence, level_vec)
-                # Since vectors are L2-normalized, cosine is dot product
-                similarities = np.dot(jd_vectors, level_vec)
-                level_similarities[level_str] = float(np.max(similarities))
 
-            peak_similarity = max(level_similarities.values())
-            # matched_level = argmax_L sim(c, L)
-            matched_level = int(max(level_similarities, key=level_similarities.get))
+def cosine_similarity(left: np.ndarray, right: np.ndarray) -> float:
+    left_normalized = l2_normalize_matrix(np.asarray(left, dtype=float))[0]
+    right_normalized = l2_normalize_matrix(np.asarray(right, dtype=float))[0]
+    return float(np.dot(left_normalized, right_normalized))
 
-            baseline = CONFIG.get("calibration", {}).get(comp_id, 0.0)
-            # raw_weight = matched_level * max(peak_similarity - baseline, 0)
-            raw_weight = matched_level * max(peak_similarity - baseline, 0)
 
-            raw_weights[comp_id] = raw_weight
+def split_sentences(text: str) -> list[str]:
+    normalized = " ".join(text.split())
+    if not normalized:
+        return []
+    return [part.strip() for part in re.findall(r"[^.!?]+[.!?]?", normalized) if part.strip()]
 
-            results.append(
-                {
-                    "competency_id": comp_id,
-                    "level_similarities": level_similarities,
-                    "matched_level": matched_level,
-                    "peak_similarity": peak_similarity,
-                    "raw_weight": raw_weight,
-                }
+
+def normalize_weights(
+    raw_weights: dict[str, float], budget: float
+) -> tuple[dict[str, float], bool]:
+    keys = list(raw_weights)
+    total = sum(max(weight, 0.0) for weight in raw_weights.values())
+    if total <= 0:
+        equal_weight = budget / len(raw_weights)
+        weights = {key: equal_weight for key in keys}
+    else:
+        weights = {key: max(raw_weights[key], 0.0) / total * budget for key in keys}
+
+    if keys:
+        weights[keys[-1]] += budget - sum(weights.values())
+    return weights, total <= 0
+
+
+def uniform_result(reason: str, budget: float = DEFAULT_CONFIG.weight_budget) -> ScoreResult:
+    weights, _ = normalize_weights({key: 0.0 for key in COMPETENCY_ORDER}, budget)
+    competencies = [
+        CompetencyScore(
+            competency_id=competency_id,
+            level_similarities={int(level): 0.0 for level in LEVEL_KEYS},
+            matched_level=0,
+            peak_similarity=0.0,
+            raw_weight=0.0,
+        )
+        for competency_id in COMPETENCY_ORDER
+    ]
+    return ScoreResult(
+        weights=weights,
+        competencies=competencies,
+        used_uniform_fallback=True,
+        fallback_reason=reason,
+    )
+
+
+def score_job_description(
+    jd_text: str,
+    rubric: Rubric,
+    embedder,
+    config: Config = DEFAULT_CONFIG,
+    rubric_index=None,
+) -> ScoreResult:
+    sentences = split_sentences(jd_text)
+    if not sentences:
+        return uniform_result("empty_jd", config.weight_budget)
+
+    if rubric_index is None:
+        from employer_match.embedder import build_rubric_index
+
+        rubric_index = build_rubric_index(rubric, embedder, config)
+
+    sentence_vectors = l2_normalize_matrix(embedder.embed_texts(sentences))
+    competency_scores: list[CompetencyScore] = []
+    raw_weights: dict[str, float] = {}
+
+    for competency_id in rubric.competency_order:
+        level_similarities = {}
+        for level in range(6):
+            level_vector = rubric_index.vectors[competency_id][level]
+            similarities = sentence_vectors @ level_vector
+            level_similarities[level] = float(np.max(similarities))
+
+        matched_level = max(
+            level_similarities, key=lambda level: (level_similarities[level], level)
+        )
+        peak_similarity = level_similarities[matched_level]
+        baseline = config.calibration_baselines.get(competency_id, 0.0)
+        raw_weight = matched_level * max(peak_similarity - baseline, 0.0)
+        raw_weights[competency_id] = raw_weight
+        competency_scores.append(
+            CompetencyScore(
+                competency_id=competency_id,
+                level_similarities=level_similarities,
+                matched_level=matched_level,
+                peak_similarity=peak_similarity,
+                raw_weight=raw_weight,
             )
+        )
 
-        # Normalize weights
-        total_raw = sum(raw_weights.values())
-        budget = CONFIG["weight_budget"]
-
-        if total_raw == 0:
-            # Fallback to uniform if no signal
-            uniform_weight = budget / len(self.competency_order)
-            weights = {comp: uniform_weight for comp in self.competency_order}
-        else:
-            weights = {
-                comp: (raw_weights[comp] / total_raw) * budget
-                for comp in self.competency_order
-            }
-
-        return weights, results
+    weights, used_fallback = normalize_weights(raw_weights, config.weight_budget)
+    return ScoreResult(
+        weights=weights,
+        competencies=competency_scores,
+        used_uniform_fallback=used_fallback,
+        fallback_reason="zero_signal" if used_fallback else None,
+    )
