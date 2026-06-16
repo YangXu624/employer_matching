@@ -1,0 +1,19 @@
+[project]
+name = "employer_match"
+version = "0.1.0"
+description = "Phase 0: Job Description to Competency Weights"
+requires-python = ">=3.11"
+dependencies = [
+    "sentence-transformers",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build-meta"
