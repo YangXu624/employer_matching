@@ -191,16 +191,92 @@
     </div>
 
     <div class="risk">
-      <h3>Trade-off 2 — raw similarities aren't comparable across metrics</h3>
-      <p>We assign each metric the level with the highest similarity, but the absolute percentage isn't calibrated across metrics: one metric's best match might land at 30% while another's lands at 80%, yet both get treated as an equally valid score. A low winning percentage usually signals a weak, uncertain match rather than a confident read. So before these scores feed the weighted average, we normalize <em>within</em> each metric — judging how dominant the winning level is relative to the other five, not by its raw number — and treat a low or narrowly-won match as a low-confidence signal, which is precisely when the optional LLM earns its place.</p>
+      <h3>Trade-off 2 — a level alone doesn't rank the metrics; magnitude does</h3>
+      <p>Each competency is assigned the level its job description matches best, but that level alone can't rank competencies against each other. One competency can match the top level (5) on a weak signal while another matches a lower level (4) on a far stronger one — and the second is the one the employer actually values. So the final weight combines both axes: how high the matched level is (the importance band) and how strongly the description engages that competency (the match strength), then normalizes across all six so they sit on one scale before feeding the weighted average.</p>
     </div>
+
+    <figure>
+      <svg viewBox="0 0 680 300" role="img" aria-label="Grid of competencies by rubric level showing similarity, with final weights ranking metrics horizontally.">
+        <style>
+          text{font-family:'IBM Plex Sans',system-ui,sans-serif}
+          .gh{font-weight:600;font-size:13px}
+          .gs{font-weight:500;font-size:11px;letter-spacing:.03em}
+          .glv{font-weight:600;font-size:13px}
+          .gc{font-weight:600;font-size:11px}
+          .gv{font-weight:600;font-size:12px}
+          .gcap{font-size:12px}
+          .gnote{font-weight:600;font-size:12px}
+        </style>
+        <text class="gs" x="308" y="40" text-anchor="middle" fill="#737A74">rubric levels — similarity %</text>
+        <text class="gs" x="575" y="40" text-anchor="middle" fill="#737A74">final weight</text>
+        <text class="glv" x="183" y="58" text-anchor="middle" fill="#5C6663">5</text>
+        <text class="glv" x="233" y="58" text-anchor="middle" fill="#5C6663">4</text>
+        <text class="glv" x="283" y="58" text-anchor="middle" fill="#5C6663">3</text>
+        <text class="glv" x="333" y="58" text-anchor="middle" fill="#5C6663">2</text>
+        <text class="glv" x="383" y="58" text-anchor="middle" fill="#5C6663">1</text>
+        <text class="glv" x="433" y="58" text-anchor="middle" fill="#5C6663">0</text>
+
+        <text class="gh" x="148" y="92" text-anchor="end" dominant-baseline="central" fill="#232B28">Communicator</text>
+        <rect x="160" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.204" stroke="#0E8A66" stroke-width="2.2"/>
+        <rect x="210" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.18" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="260" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.144" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="310" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.108" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="360" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.072" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="410" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.048" stroke="#E6E5DE" stroke-width="0.5"/>
+        <text class="gc" x="183" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">34</text>
+        <text class="gc" x="233" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">30</text>
+        <text class="gc" x="283" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">24</text>
+        <text class="gc" x="333" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">18</text>
+        <text class="gc" x="383" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">12</text>
+        <text class="gc" x="433" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">8</text>
+        <rect x="500" y="81" width="77" height="22" rx="5" fill="#0E8A66"/>
+        <text class="gv" x="571" y="92" text-anchor="end" dominant-baseline="central" fill="#fff">23</text>
+
+        <text class="gh" x="148" y="144" text-anchor="end" dominant-baseline="central" fill="#232B28">Critical Thinker</text>
+        <rect x="160" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.246" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="210" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.348" stroke="#0E8A66" stroke-width="2.2"/>
+        <rect x="260" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.312" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="310" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.18" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="360" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.12" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="410" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.06" stroke="#E6E5DE" stroke-width="0.5"/>
+        <text class="gc" x="183" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">41</text>
+        <text class="gc" x="233" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">58</text>
+        <text class="gc" x="283" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">52</text>
+        <text class="gc" x="333" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">30</text>
+        <text class="gc" x="383" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">20</text>
+        <text class="gc" x="433" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">10</text>
+        <rect x="500" y="133" width="107" height="22" rx="5" fill="#0E8A66"/>
+        <text class="gv" x="601" y="144" text-anchor="end" dominant-baseline="central" fill="#fff">32</text>
+
+        <text class="gh" x="148" y="196" text-anchor="end" dominant-baseline="central" fill="#232B28">Career Ready</text>
+        <rect x="160" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.33" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="210" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.492" stroke="#0E8A66" stroke-width="2.2"/>
+        <rect x="260" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.36" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="310" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.21" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="360" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.108" stroke="#E6E5DE" stroke-width="0.5"/>
+        <rect x="410" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.054" stroke="#E6E5DE" stroke-width="0.5"/>
+        <text class="gc" x="183" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">55</text>
+        <text class="gc" x="233" y="196" text-anchor="middle" dominant-baseline="central" fill="#fff">82</text>
+        <text class="gc" x="283" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">60</text>
+        <text class="gc" x="333" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">35</text>
+        <text class="gc" x="383" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">18</text>
+        <text class="gc" x="433" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">9</text>
+        <rect x="500" y="185" width="150" height="22" rx="5" fill="#0E8A66"/>
+        <text class="gv" x="644" y="196" text-anchor="end" dominant-baseline="central" fill="#fff">45</text>
+
+        <text class="gcap" x="20" y="244" fill="#5C6663">&#8595; vertical — which level matched (the importance band for that metric)</text>
+        <text class="gcap" x="20" y="263" fill="#5C6663">&#8594; horizontal — match strength ranks the metrics against each other</text>
+        <text class="gnote" x="20" y="286" fill="#0B5E48">Communicator hit level 5 but only weakly (34%), so it ranks last — level alone would mislead.</text>
+      </svg>
+      <figcaption>The matched level sets the band; the match strength decides the cross-metric ranking and the final weight.</figcaption>
+    </figure>
   </section>
 
   <hr class="rule">
 
   <section class="section">
     <h2>What's next</h2>
-    <p class="next">The main open question is which normalization and confidence method to settle on — relative scaling within a metric, the margin between the top two levels, or a calibrated per-metric baseline — then validating it against real inputs.</p>
+    <p class="next">The main open question is how to combine the matched level with the match strength into one weight, and how to calibrate similarities across metrics — subtracting each metric's baseline from a set of reference job descriptions — so the cross-metric ranking is trustworthy rather than approximate.</p>
   </section>
 
 </main>

@@ -1,0 +1,15 @@
+# Job Title: Senior Frontend Developer (React/TypeScript)
+
+We are looking for a creative and innovative Frontend Developer to join our team. 
+
+Key Responsibilities:
+- Design and implement highly interactive and visually appealing user interfaces.
+- Collaborate with cross-functional teams to solve complex technical problems.
+- Communicate technical concepts clearly to non-technical stakeholders.
+- Drive innovation in our frontend stack and mentor junior developers.
+
+Requirements:
+- Strong experience with React, TypeScript, and modern CSS.
+- Demonstrated ability to think critically about user experience.
+- Proactive approach to learning and professional development.
+- Strong communication skills and a team-player mindset.
