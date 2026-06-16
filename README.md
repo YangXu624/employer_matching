@@ -55,11 +55,35 @@ pyproject.toml           # Project dependencies and metadata
    pip install .
    ```
 
-### Usage
-Analyze a Job Description and see the weight breakdown:
+### How to Use
+
+The system currently operates via a Command Line Interface (CLI). 
+
+### 1. Preparing your Job Description
+Create a plain text file (e.g., `my_job.txt`) and paste the unstructured text of the Job Description into it. You can see an example in `examples/sample_jd.txt`.
+
+### 2. Running the Pipeline
+The primary entry point is the `cli.py` module. Run the following command from the root of the repository:
+
 ```bash
+# General Syntax:
+PYTHONPATH=. python3 -m employer_match.cli --jd <path_to_your_jd_file>
+
+# Example using the provided sample:
 PYTHONPATH=. python3 -m employer_match.cli --jd examples/sample_jd.txt
 ```
+
+### 3. Understanding the Output
+The CLI will output:
+- **Employer Weight Vector:** A JSON object mapping each of the 6 competencies to a weight (0-100). This is the final output to be used for candidate ranking.
+- **Per-Competency Detail:** A breakdown showing which proficiency level (0-5) was matched and the similarity scores for every level, allowing you to audit *why* a specific weight was assigned.
+
+## How it Works (Internal Flow)
+If you are navigating the code, the execution flow is:
+1. `cli.py`: Handles file I/O and argument parsing.
+2. `pipeline.py`: The orchestrator that initializes the model and coordinates the data flow.
+3. `embedder.py`: Converts your JD text into high-dimensional vectors.
+4. `scorer.py`: Compares those vectors against the rubric to calculate weights.
 
 ## What's Left to Be Done
 
