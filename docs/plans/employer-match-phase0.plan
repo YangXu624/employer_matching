@@ -26,8 +26,9 @@ Use these documents as the implementation source of truth:
 - `/Users/gsharsh/Downloads/pathcredits_rubric_long.json`
 - `/Users/gsharsh/Downloads/cursor-build-prompt.md`
 
-The Cursor build prompt supersedes earlier Ollama embedding ideas for Phase 0.
-Phase 0 should use local in-process `sentence-transformers`, not Ollama.
+Runtime update: Phase 0 should use local Ollama embeddings with
+`nomic-embed-text:v1.5`, per the implementation decision made after this plan
+was first drafted.
 
 ## Fixed Competencies
 
@@ -44,13 +45,14 @@ The six competencies are fixed and must remain in this order:
 
 - Python 3.11+.
 - Package name: `employer_match`.
-- Default embedding model: `BAAI/bge-base-en-v1.5`.
-- Core dependencies: `sentence-transformers`, `numpy`.
+- Default embedding model: `nomic-embed-text:v1.5`.
+- Core dependencies: `numpy`; Ollama must be installed locally.
 - Phase 1 may add `pandas` for PathCredits CSV ingestion.
 - Optional LLM dependencies must not be required in Phase 0.
 - Embed only rubric `levels`; never embed `_meta` or `definition`.
 - L2-normalize all vectors so cosine similarity is a dot product.
-- Treat JD text and rubric level descriptions symmetrically.
+- Treat JD text and rubric level descriptions symmetrically through the same
+  Ollama embedding endpoint.
 - Keep a calibration baseline hook in the scoring formula, defaulting to zero.
 
 ## Target Project Structure
@@ -109,6 +111,14 @@ python -m employer_match.cli --jd path/to/jd.txt --llm off
 ```
 
 In Phase 0, only `--llm off` should be accepted.
+
+Ollama setup:
+
+```bash
+brew install ollama
+brew services start ollama
+ollama pull nomic-embed-text:v1.5
+```
 
 ## Data Contracts
 
@@ -230,7 +240,7 @@ Tasks:
 
 - Add `employer_match/embedder.py`.
 - Add `employer_match/scorer.py`.
-- Load the configured `sentence-transformers` model.
+- Call the configured local Ollama embedding model.
 - Embed and cache rubric level vectors.
 - Normalize vectors.
 - Split and embed JD sentences.
@@ -278,8 +288,8 @@ Add tests for:
 - Empty JD returns a graceful fallback.
 - CLI exits successfully for `examples/sample_jd.txt`.
 
-Use mocks or fakes for embedding-heavy tests so CI and local validation do not
-depend on downloading a model for every test run.
+Use mocks or fakes for unit tests around embedding-heavy internals. The CLI smoke
+test may use the real local Ollama model when available.
 
 ## Quality Gates
 
@@ -333,7 +343,8 @@ Phase 0 is done when a teammate can run one CLI command on a sample JD and see:
 - Peak similarity per competency.
 - All six level similarities per competency.
 - Rubric vectors cached after the first run.
-- No network calls or LLM calls.
+- No external network calls or LLM calls during scoring. Local Ollama embedding
+  calls are expected.
 
 ## Collaboration Rules
 
