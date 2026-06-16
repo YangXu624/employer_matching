@@ -52,7 +52,11 @@ pyproject.toml           # Project dependencies and metadata
    ```
 2. Install dependencies:
    ```bash
+   # Option A: Standard install
    pip install .
+
+   # Option B: Manual install (if Option A fails due to build backend issues)
+   pip install numpy sentence-transformers pytest ruff
    ```
 
 ### How to Use
