@@ -323,6 +323,44 @@ Populate per-competency baselines from reference JDs. The Phase 0 scoring formul
 already includes the baseline subtraction so calibration can be added without a
 core scoring refactor.
 
+### Future Deployment Architecture Notes
+
+Use Hack-Roll as a cautionary reference, not as proof of a completed production
+deployment. The `wagmirep/Hack-Roll` repo appeared to have a partial
+cloud-hybrid setup rather than a fully deployed online product.
+
+Observed Hack-Roll deployment shape:
+
+- Supabase was the clearly cloud-hosted component:
+  `https://tamrgxhjyabdvtubseyu.supabase.co`.
+- The mobile app was React Native/Expo and pointed to either a local backend or
+  a future production backend through `EXPO_PUBLIC_API_URL`.
+- The backend was FastAPI.
+- `backend/fly.toml` existed with app name `lahstats-backend-wy`, region `iad`,
+  internal port `8000`, and a 1 GB shared VM.
+- A backend Dockerfile existed.
+- Their task list still marked backend cloud deployment as incomplete/planned.
+
+The useful lesson is that they avoided deploying heavy ML dependencies inside
+the web backend. Their backend Dockerfile described a slim production image, and
+`requirements-slim.txt` excluded heavy model packages such as `torch`,
+`transformers`, and `pyannote.audio`. Heavy ML was expected to run externally,
+likely through Colab or another API.
+
+Apply that lesson here in later phases:
+
+- Vercel is a good fit for a lightweight UI/API shell, but not for the current
+  in-process `sentence-transformers` scorer because the Python embedding stack is
+  too large for Vercel function limits.
+- Render can be tested for an all-in-one MVP service hosting both the web UI and
+  scorer, but expect possible memory and cold-start pressure on the free tier.
+- If Render struggles, split the architecture:
+  - lightweight web UI/API on Vercel or Render,
+  - embedding/model inference in a separate worker or external inference service,
+  - web backend calls that scorer service over HTTP.
+- Keep deployment changes out of Phase 0 unless explicitly scoped, because
+  Phase 0 remains CLI-first and embedding-only.
+
 ## Phase 0 Definition Of Done
 
 Phase 0 is done when a teammate can run one CLI command on a sample JD and see:
