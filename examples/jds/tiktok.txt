@@ -1,0 +1,47 @@
+Full job description
+Corporate Functions
+
+Technology Internal Audit Lead - Product Technology & Trust and Safety
+
+Location: Los Angeles
+
+Employment Type: Regular
+
+Job Code: A154697A
+
+Responsibilities
+
+Team Introduction:
+Internal Audit is a global function responsible for providing independent assurance and evaluating the company's risk management, governance and internal control processes to determine if they are designed and operating effectively. The Internal Audit team plans and executes audit projects according to our risk-based audit plan by evaluating financial, compliance, operational, and IT processes and controls. We work with business functions in addressing risks and improving the control environment through timely and comprehensive audit work and tracking of remediation actions until completion.
+
+Position Summary:
+We are looking for an experienced technology professional to join us as Technology Audit Lead. This individual will contribute to the ongoing development of the Global Technology Audit function and TikTok's efforts to enhance its risk management capabilities in support of the company's business objectives. The individual will be part of the Global Technology Audit team and utilize innovative assurance methods to impact and influence positive business outcomes across products such as TikTok, TikTok LIVE, Local Services and CapCut, as well as Trust & Safety.
+
+Responsibilities:
+Audit Delivery: Lead planning and execution of technology and integrated audits supporting technology platforms and infrastructure underpinning core products, product security, LLM powered content moderation, software development lifecycle and governance. Evaluate application security, effectiveness of machine learning models, and assess information security risk management for internally built systems and models.
+Data Analytics / AI: Leverage data analytics to detect risk signals and unearth insights. Apply AI technologies/Machine Learning (ML) to develop innovative AI-based audit solutions and perform audit testing. Communicate issues and recommendations to senior management. Collaborate with risk owners to ensure risk mitigation plans are developed and completed, tracking and reporting on the progress of the remediation plans on a regular basis.
+Technology Risk Assessment: Assist in analysis and identification of emerging technology risks for TikTok. Develop and maintain subject matter expertise in one or more technology domains. Ability to grasp complex, home grown technology stack, comfortable speaking with engineers and product teams.
+Stakeholder Relationships: Develop and maintain collaborative working relationships with management, understand the business to provide value-added services, and establish credibility as a management consultant and internal controls resource. Partner with engineering and product teams to advise on design and implementation of technology solutions.
+Professional Development: Continually expand knowledge of the audit profession, industry, and company products through self-study, research, and continuing education efforts. Develop innovative methodologies for auditing new technologies and services.
+Quality Assurance: Ensure the overall quality and consistency of audit work, adhering to department and professional standards. Continuously seek opportunities for audit process improvement.
+Qualifications
+
+Minimum Qualifications:
+More than 5 years of relevant experience in product security, application security, security operations, technical or privacy program management preferably within the technology sector (social media, fintech, infrastructure & cloud providers etc.) and consulting.
+Proven ability to work in a fast-paced environment with a product centric culture.
+Strong understanding of security fundamentals across various cyber domains: product security, application security, data security or web security
+Experience in one or more software or data engineering domains: large scale distributed or parallel systems, microservice architecture, data pipeline and infrastructure
+Experience in implementing or evaluating technology and automation in a DevOps environment. Knowledge of logging technologies, system monitoring, and security event management
+Proven analytical ability to assess complex technology environments against risk assessment outcomes, industry best practices, internal standards and external regulatory requirements.
+Excellent problem solving, critical thinking, collaboration and communication skills combined with the ability to provide a credible technical challenge to the business.
+Preferred Qualifications:
+Internal Audit experience is preferred but not required
+Solid background and experience working with one or more of the following areas:
+Major programming languages and frameworks (e.g. Python, C# .NET, JavaScript, node.js, Java)
+Source code and DevOps management tools (e.g., Gitlab, Github, Bitbucket)
+Common application and infrastructure security vulnerabilities and mitigations (OWASP Top 10, CWE 25).
+Cloud platforms (e.g., AWS, Google Cloud Platform)
+Database technologies (e.g., SQL, Oracle, SQL Server, MongoDB, Redis, , Elasticsearch)
+Professional certifications such as CISSP, CISM, CISA, CRISC, or CIA.
+Experience in the digital advertising and/or E‑commerce domain.
+Experience working in a global organization and managing projects across different time zones.
