@@ -50,6 +50,20 @@ JSON output:
 python -m employer_match.cli --jd sample_jd.txt --json
 ```
 
+## MVP Web UI
+
+Run the local dashboard:
+
+```bash
+python -m employer_match.web_app
+```
+
+Then open `http://127.0.0.1:8765`.
+
+The UI lets you load sample JDs, paste new JDs, run the Phase 0 scorer, see an
+overall score plus competency breakdown, and keep recent checks in browser
+storage.
+
 `--llm off` is accepted for future compatibility. Any other LLM value is
 rejected in Phase 0.
 

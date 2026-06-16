@@ -13,9 +13,17 @@ def score_jd_file(
     rubric_path: Path | None = None,
     config: Config = DEFAULT_CONFIG,
 ) -> tuple[ScoreResult, Path]:
+    jd_text = jd_path.read_text()
+    return score_jd_text(jd_text, rubric_path, config)
+
+
+def score_jd_text(
+    jd_text: str,
+    rubric_path: Path | None = None,
+    config: Config = DEFAULT_CONFIG,
+) -> tuple[ScoreResult, Path]:
     rubric = load_rubric(rubric_path)
     embedder = SentenceTransformerEmbedder(config.embedding_model)
-    jd_text = jd_path.read_text()
     return score_job_description(jd_text, rubric, embedder, config), rubric_path or Path(
         "employer_match/data/rubric.json"
     )
