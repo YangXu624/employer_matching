@@ -24,7 +24,7 @@ packages = ["employer_match"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-employer_match = ["data/*.json"]
+employer_match = ["data/*.json", "static/*.html", "static/*.css", "static/*.js"]
 
 [tool.ruff]
 line-length = 100
