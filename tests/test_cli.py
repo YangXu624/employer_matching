@@ -7,7 +7,7 @@ from employer_match.scorer import CompetencyScore, ScoreResult
 
 def test_cli_exits_successfully_with_sentence_transformer_pipeline(monkeypatch, capsys):
     def fake_score_jd_file(jd_path, rubric_path, config):
-        assert jd_path == Path("examples/sample_jd.txt")
+        assert jd_path == Path("sample_jd.txt")
         return (
             ScoreResult(
                 weights={
@@ -34,7 +34,7 @@ def test_cli_exits_successfully_with_sentence_transformer_pipeline(monkeypatch, 
 
     monkeypatch.setattr("employer_match.cli.score_jd_file", fake_score_jd_file)
 
-    exit_code = main(["--jd", "examples/sample_jd.txt", "--json"])
+    exit_code = main(["--jd", "sample_jd.txt", "--json"])
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)

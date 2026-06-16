@@ -41,13 +41,13 @@ is not already present locally.
 ## Usage
 
 ```bash
-python -m employer_match.cli --jd examples/sample_jd.txt
+python -m employer_match.cli --jd sample_jd.txt
 ```
 
 JSON output:
 
 ```bash
-python -m employer_match.cli --jd examples/sample_jd.txt --json
+python -m employer_match.cli --jd sample_jd.txt --json
 ```
 
 `--llm off` is accepted for future compatibility. Any other LLM value is
@@ -65,7 +65,7 @@ descriptions.
 pytest
 ruff check .
 ruff format --check .
-python -m employer_match.cli --jd examples/sample_jd.txt
+python -m employer_match.cli --jd sample_jd.txt
 ```
 
 ## Known Limits

@@ -253,14 +253,14 @@ Tasks:
 
 - Add `employer_match/pipeline.py`.
 - Add `employer_match/cli.py`.
-- Add `examples/sample_jd.txt`.
+- Add `sample_jd.txt`.
 - Add or update `README.md`.
 - Wire the CLI from JD path to formatted scoring output.
 - Document setup, dependencies, cache behavior, CLI usage, and known limits.
 
 Done when:
 
-- `python -m employer_match.cli --jd examples/sample_jd.txt` prints all six
+- `python -m employer_match.cli --jd sample_jd.txt` prints all six
   weights and per-competency details.
 - README clearly separates Phase 0 from later phases.
 - The team can run the same commands locally without guessing.
@@ -276,7 +276,7 @@ Add tests for:
 - Weight normalization sums to 100.
 - All-zero raw weights return uniform weights.
 - Empty JD returns a graceful fallback.
-- CLI exits successfully for `examples/sample_jd.txt`.
+- CLI exits successfully for `sample_jd.txt`.
 
 Use mocks or fakes for embedding-heavy tests so CI and local validation do not
 depend on downloading a model for every test run.
@@ -289,7 +289,7 @@ Run before merging implementation:
 pytest
 ruff check .
 ruff format --check .
-python -m employer_match.cli --jd examples/sample_jd.txt
+python -m employer_match.cli --jd sample_jd.txt
 ```
 
 ## Later Phases
