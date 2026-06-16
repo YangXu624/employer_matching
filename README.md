@@ -41,7 +41,11 @@ is not already present locally.
 ## Usage
 
 ```bash
+# To analyze the main sample file:
 python -m employer_match.cli --jd sample_jd.txt
+
+# To analyze a specific job description from the jds/ folder:
+python -m employer_match.cli --jd jds/fbi.txt
 ```
 
 JSON output:
