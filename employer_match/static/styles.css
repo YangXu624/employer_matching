@@ -240,6 +240,27 @@ input[type=range]::-moz-range-thumb {
   border: none;
 }
 
+.score-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-input {
+  width: 52px;
+  padding: 4px;
+  text-align: right;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 13px;
+  background: #fbfcfe;
+}
+
+.score-input:focus {
+  outline: 1px solid var(--accent);
+  border-color: var(--accent);
+}
+
 .metric-meta {
   color: var(--muted);
   font-size: 12px;
