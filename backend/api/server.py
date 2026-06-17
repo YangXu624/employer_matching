@@ -12,6 +12,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
 from backend.api.storage import list_checks, save_check  # noqa: E402
 from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload  # noqa: E402
 
@@ -54,6 +61,29 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
             try:
                 weights = payload.get("weights", {})
                 self.write_json({"matches": match_candidates(weights)})
+            except Exception as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if path == "/api/audit":
+            payload = self.read_json()
+            try:
+                from backend.agent.llm import MissingApiKeyError
+                from backend.agent.weight_auditor import audit_weights
+
+                jd_text = str(payload.get("jd_text", ""))
+                weights = payload.get("weights", {})
+                signals = {
+                    str(c.get("competency_id")): {
+                        "matched_level": c.get("matched_level"),
+                        "peak_similarity": c.get("peak_similarity"),
+                    }
+                    for c in payload.get("competencies", [])
+                    if c.get("competency_id")
+                }
+                self.write_json(audit_weights(jd_text, weights, signals))
+            except MissingApiKeyError as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return

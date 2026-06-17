@@ -17,10 +17,22 @@ const spiderChartCanvas = document.querySelector("#spiderChart");
 const matchButton = document.getElementById("matchButton");
 const candidatesSection = document.getElementById("candidatesSection");
 const candidatesList = document.getElementById("candidatesList");
+const auditButton = document.getElementById("auditButton");
+const auditSection = document.getElementById("auditSection");
+const auditSummary = document.getElementById("auditSummary");
+const auditResults = document.getElementById("auditResults");
+const applyAuditButton = document.getElementById("applyAuditButton");
 let chartInstance = null;
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(
+    /[&<>"']/g,
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]),
+  );
 }
 
 function apiHeaders(extra = {}) {
@@ -243,6 +255,7 @@ function saveHistory(result) {
 async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
+  hideAudit();
   try {
     const response = await fetch(apiUrl("/api/score"), {
       method: "POST",
@@ -280,6 +293,7 @@ newCheckButton.addEventListener("click", () => {
   if (budgetTracker) budgetTracker.style.display = "none";
   if (matchButton) matchButton.style.display = "none";
   if (candidatesSection) candidatesSection.style.display = "none";
+  hideAudit();
 });
 
 scoreButton.addEventListener("click", scoreCurrentJd);
@@ -328,6 +342,83 @@ if (matchButton) {
       matchButton.textContent = "Match with Students";
     }
   });
+}
+
+function hideAudit() {
+  if (auditSection) auditSection.style.display = "none";
+  if (applyAuditButton) applyAuditButton.style.display = "none";
+}
+
+function renderAudit(data) {
+  auditSection.style.display = "block";
+  auditSummary.textContent = data.summary || "";
+  auditResults.innerHTML = "";
+
+  data.competencies.forEach((competency) => {
+    const delta = competency.delta;
+    const arrow = delta > 0 ? "\u25B2" : delta < 0 ? "\u25BC" : "\u2014";
+    const deltaClass = delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : "delta-same";
+    const card = document.createElement("div");
+    card.className = "audit-card";
+    card.innerHTML = `
+      <div class="audit-head">
+        <strong>${escapeHtml(competency.label)}</strong>
+        <span class="audit-nums">
+          <span class="audit-base">${competency.baseline}</span>
+          <span class="audit-arrow ${deltaClass}">\u2192 ${competency.corrected} ${arrow}</span>
+        </span>
+      </div>
+      <div class="audit-reason">${escapeHtml(competency.reason)}</div>
+      ${competency.evidence ? `<div class="audit-evidence">${escapeHtml(competency.evidence)}</div>` : ""}
+    `;
+    auditResults.appendChild(card);
+  });
+
+  applyAuditButton.style.display = "block";
+  applyAuditButton.onclick = () => {
+    const updated = { ...state.currentWeights };
+    data.competencies.forEach((competency) => {
+      updated[competency.competency_id] = competency.corrected;
+    });
+    state.currentWeights = updated;
+    updateDOM();
+    hideAudit();
+    statusText.textContent = "Applied AI corrections. Review the sliders and Save.";
+  };
+
+  auditSection.scrollIntoView({ behavior: "smooth" });
+}
+
+async function auditWeights() {
+  if (!state.lastResult) return;
+  const originalLabel = auditButton.textContent;
+  auditButton.disabled = true;
+  auditButton.textContent = "Auditing...";
+  statusText.textContent = "Running AI audit (this can take a few seconds)...";
+  try {
+    const response = await fetch(apiUrl("/api/audit"), {
+      method: "POST",
+      headers: apiHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        jd_text: jobText.value,
+        weights: state.currentWeights,
+        competencies: state.lastResult.competencies,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Audit failed");
+    renderAudit(payload);
+    statusText.textContent = `AI audit complete (${payload.model}). Review and apply corrections.`;
+  } catch (error) {
+    statusText.textContent = error.message;
+  } finally {
+    auditButton.disabled = false;
+    auditButton.textContent = originalLabel;
+  }
+}
+
+if (auditButton) {
+  auditButton.addEventListener("click", auditWeights);
 }
 
 function renderCandidates(matches) {

@@ -45,6 +45,7 @@
           <div class="budget-tracker" id="budgetTracker" style="display: none;">
             <p id="budgetText">Allocated: 0.0 / 100</p>
             <div class="action-buttons">
+              <button id="auditButton" type="button" class="secondary-btn">AI Audit</button>
               <button id="resetButton" type="button" class="secondary-btn">Reset</button>
               <button id="saveButton" type="button">Save Scores</button>
             </div>
@@ -54,6 +55,14 @@
               </button>
             </div>
           </div>
+        </section>
+        <section id="auditSection" style="display: none; margin-top: 30px;">
+          <h2>AI Weight Audit</h2>
+          <p id="auditSummary" class="status-text"></p>
+          <div id="auditResults" class="stack-list"></div>
+          <button id="applyAuditButton" type="button" style="display: none; width: 100%; margin-top: 12px;">
+            Apply corrections
+          </button>
         </section>
         <section id="candidatesSection" style="display: none; margin-top: 30px;">
           <h2>Top Student Matches</h2>

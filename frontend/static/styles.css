@@ -372,6 +372,65 @@ button:disabled {
   gap: 4px 12px;
 }
 
+.audit-card {
+  border: 1px solid var(--line);
+  background: #fbfcfe;
+  border-radius: 6px;
+  padding: 11px 12px;
+}
+
+.audit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.audit-head strong {
+  font-size: 14px;
+}
+
+.audit-nums {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.audit-base {
+  color: var(--muted);
+}
+
+.audit-arrow {
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.delta-up {
+  color: var(--good);
+}
+
+.delta-down {
+  color: #dc2626;
+}
+
+.delta-same {
+  color: var(--muted);
+}
+
+.audit-reason {
+  font-size: 12.5px;
+  color: var(--text);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.audit-evidence {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
 @media (max-width: 1050px) {
   .app-shell {
     grid-template-columns: 240px 1fr;
