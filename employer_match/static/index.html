@@ -43,16 +43,31 @@
       </section>
 
       <aside class="score-panel" aria-label="Scoring results">
-        <section class="overall-box">
-          <p class="eyebrow">Overall</p>
-          <div class="score-circle"><span id="overallScore">--</span><small>/100</small></div>
-        </section>
         <section>
           <h2>Breakdown</h2>
           <div id="breakdownList" class="breakdown-list"></div>
+          <div class="budget-tracker" id="budgetTracker" style="display: none;">
+            <p id="budgetText">Allocated: 0.0 / 100</p>
+            <div class="action-buttons">
+              <button id="resetButton" type="button" class="secondary-btn">Reset</button>
+              <button id="saveButton" type="button">Save Scores</button>
+            </div>
+            <div style="margin-top: 12px;">
+              <button id="matchButton" type="button" style="display: none; width: 100%;">Match with Students</button>
+            </div>
+          </div>
+        </section>
+        <section id="candidatesSection" style="display: none; margin-top: 30px;">
+          <h2>Top Student Matches</h2>
+          <div id="candidatesList" class="stack-list"></div>
+        </section>
+        <section style="margin-top: 30px;">
+          <h2>Holistic View</h2>
+          <canvas id="spiderChart"></canvas>
         </section>
       </aside>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/app.js"></script>
   </body>
 </html>
