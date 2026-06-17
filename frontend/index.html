@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Employer Match Scoring</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="history-panel" aria-label="Previous and sample job descriptions">
+        <div class="panel-header">
+          <h1>JD Checks</h1>
+          <button id="newCheckButton" type="button">New</button>
+        </div>
+        <section>
+          <h2>Samples</h2>
+          <div id="sampleList" class="stack-list"></div>
+        </section>
+        <section>
+          <h2>Previous</h2>
+          <div id="historyList" class="stack-list empty-list">No saved checks yet.</div>
+        </section>
+      </aside>
+
+      <section class="editor-panel" aria-label="Job description input">
+        <div class="editor-header">
+          <div>
+            <p class="eyebrow">Employer scorer</p>
+            <h2>Input job description</h2>
+          </div>
+          <button id="scoreButton" type="button">Score JD</button>
+        </div>
+        <label class="field-label" for="jobTitle">Label</label>
+        <input id="jobTitle" type="text" value="Untitled JD" />
+        <label class="field-label" for="jobText">Job description</label>
+        <textarea
+          id="jobText"
+          spellcheck="true"
+          placeholder="Paste a job description here, then score it."
+        ></textarea>
+        <p id="statusText" class="status-text" role="status"></p>
+      </section>
+
+      <aside class="score-panel" aria-label="Scoring results">
+        <section>
+          <h2>Breakdown</h2>
+          <div id="breakdownList" class="breakdown-list"></div>
+          <div class="budget-tracker" id="budgetTracker" style="display: none;">
+            <p id="budgetText">Allocated: 0.0 / 100</p>
+            <div class="action-buttons">
+              <button id="resetButton" type="button" class="secondary-btn">Reset</button>
+              <button id="saveButton" type="button">Save Scores</button>
+            </div>
+            <div style="margin-top: 12px;">
+              <button id="matchButton" type="button" style="display: none; width: 100%;">
+                Match with Students
+              </button>
+            </div>
+          </div>
+        </section>
+        <section id="candidatesSection" style="display: none; margin-top: 30px;">
+          <h2>Top Student Matches</h2>
+          <div id="candidatesList" class="stack-list"></div>
+        </section>
+        <section style="margin-top: 30px;">
+          <h2>Holistic View</h2>
+          <canvas id="spiderChart"></canvas>
+        </section>
+      </aside>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/config.js"></script>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

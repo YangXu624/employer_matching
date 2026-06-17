@@ -1,0 +1,347 @@
+const API_BASE_URL = (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
+
+const state = {
+  samples: [],
+  history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
+  lastResult: null,
+  currentWeights: {},
+};
+
+const sampleList = document.querySelector("#sampleList");
+const historyList = document.querySelector("#historyList");
+const jobTitle = document.querySelector("#jobTitle");
+const jobText = document.querySelector("#jobText");
+const statusText = document.querySelector("#statusText");
+const scoreButton = document.querySelector("#scoreButton");
+const newCheckButton = document.querySelector("#newCheckButton");
+const breakdownList = document.querySelector("#breakdownList");
+const spiderChartCanvas = document.querySelector("#spiderChart");
+const matchButton = document.getElementById("matchButton");
+const candidatesSection = document.getElementById("candidatesSection");
+const candidatesList = document.getElementById("candidatesList");
+let chartInstance = null;
+
+function apiUrl(path) {
+  return `${API_BASE_URL}${path}`;
+}
+
+function compactText(text, maxLength = 96) {
+  const value = text.replace(/\s+/g, " ").trim();
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
+}
+
+function renderCards(container, items, onClick) {
+  container.innerHTML = "";
+  if (!items.length) {
+    container.classList.add("empty-list");
+    container.textContent = "No saved checks yet.";
+    return;
+  }
+  container.classList.remove("empty-list");
+  items.forEach((item) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "item-card";
+    button.innerHTML = `<strong>${item.title}</strong><span>${compactText(item.body || item.summary || "")}</span>`;
+    button.addEventListener("click", () => onClick(item));
+    container.appendChild(button);
+  });
+}
+
+function renderHistory() {
+  renderCards(historyList, state.history, (item) => {
+    jobTitle.value = item.title;
+    jobText.value = item.body;
+    if (item.result) {
+      renderResult(item.result);
+    }
+  });
+}
+
+function renderSamples() {
+  renderCards(sampleList, state.samples, (item) => {
+    jobTitle.value = item.title;
+    jobText.value = item.body;
+    statusText.textContent = `Loaded ${item.title}`;
+  });
+}
+
+function renderResult(result) {
+  state.lastResult = result;
+  breakdownList.innerHTML = "";
+  state.currentWeights = {};
+
+  result.competencies.forEach((competency) => {
+    if (competency.original_weight === undefined) {
+      competency.original_weight = Number(competency.weight || 0);
+    }
+    state.currentWeights[competency.competency_id] = competency.original_weight;
+  });
+
+  result.competencies.forEach((competency) => {
+    const id = competency.competency_id;
+    const row = document.createElement("article");
+    row.className = "metric-row";
+    row.innerHTML = `
+      <header>
+        <span>${competency.label}</span>
+        <span id="val-${id}">0.0 pts</span>
+      </header>
+      <input type="range" id="slider-${id}" min="0" max="100" step="0.1" value="0" aria-label="${competency.label} weight">
+      <div class="metric-meta">Level ${competency.matched_level} · similarity ${Number(competency.peak_similarity).toFixed(3)}</div>
+    `;
+    breakdownList.appendChild(row);
+
+    const slider = row.querySelector(`#slider-${id}`);
+    slider.addEventListener("input", (event) => {
+      handleSliderChange(id, parseFloat(event.target.value));
+    });
+  });
+
+  updateDOM();
+}
+
+function handleSliderChange(changedId, newValue) {
+  newValue = Math.max(0, Math.min(100, newValue));
+  state.currentWeights = { ...state.currentWeights, [changedId]: newValue };
+  updateDOM();
+}
+
+function updateDOM() {
+  const labels = [];
+  const dataPoints = [];
+  let totalWeight = 0;
+
+  const acronyms = {
+    effective_communicator: "EC",
+    global_citizen: "GC",
+    creative_innovator: "CI",
+    critical_thinker: "CT",
+    reflective_future_focused: "RFF",
+    career_ready: "CR",
+  };
+
+  state.lastResult.competencies.forEach((competency) => {
+    const id = competency.competency_id;
+    const weight = state.currentWeights[id];
+    totalWeight += weight;
+    competency.weight = weight;
+
+    const valSpan = document.getElementById(`val-${id}`);
+    if (valSpan) valSpan.textContent = `${weight.toFixed(1)} pts`;
+
+    const slider = document.getElementById(`slider-${id}`);
+    if (slider && Math.abs(parseFloat(slider.value) - weight) > 0.01) {
+      slider.value = weight;
+    }
+
+    labels.push(acronyms[id] || competency.label);
+    dataPoints.push(weight);
+  });
+
+  const budgetTracker = document.getElementById("budgetTracker");
+  const budgetText = document.getElementById("budgetText");
+  const saveBtn = document.getElementById("saveButton");
+
+  if (budgetTracker) {
+    budgetTracker.style.display = "block";
+    const difference = (100 - totalWeight).toFixed(1);
+
+    if (Math.abs(totalWeight - 100) < 0.1) {
+      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (Perfect)`;
+      budgetText.className = "success";
+      saveBtn.disabled = false;
+    } else if (totalWeight > 100) {
+      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (Over by ${Math.abs(difference)})`;
+      budgetText.className = "error";
+      saveBtn.disabled = true;
+      if (matchButton) matchButton.style.display = "none";
+      if (candidatesSection) candidatesSection.style.display = "none";
+    } else {
+      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (${difference} remaining)`;
+      budgetText.className = "error";
+      saveBtn.disabled = true;
+      if (matchButton) matchButton.style.display = "none";
+      if (candidatesSection) candidatesSection.style.display = "none";
+    }
+  }
+
+  renderSpiderChart(labels, dataPoints);
+}
+
+function renderSpiderChart(labels, data) {
+  if (chartInstance) {
+    chartInstance.destroy();
+  }
+  chartInstance = new Chart(spiderChartCanvas, {
+    type: "radar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Competency Weight",
+          data,
+          backgroundColor: "rgba(37, 99, 235, 0.2)",
+          borderColor: "rgba(37, 99, 235, 1)",
+          pointBackgroundColor: "rgba(37, 99, 235, 1)",
+          pointBorderColor: "#fff",
+          pointHoverBackgroundColor: "#fff",
+          pointHoverBorderColor: "rgba(37, 99, 235, 1)",
+        },
+      ],
+    },
+    options: {
+      scales: {
+        r: {
+          beginAtZero: true,
+          ticks: {
+            display: false,
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+    },
+  });
+}
+
+function saveHistory(result) {
+  const item = {
+    title: result.title,
+    body: jobText.value,
+    summary: `${result.overall_score}/100`,
+    result,
+    savedAt: new Date().toISOString(),
+  };
+  state.history = [item, ...state.history.filter((entry) => entry.body !== item.body)].slice(0, 12);
+  localStorage.setItem("employerMatchHistory", JSON.stringify(state.history));
+  renderHistory();
+}
+
+async function loadSamples() {
+  const response = await fetch(apiUrl("/api/samples"));
+  const payload = await response.json();
+  state.samples = payload.samples || [];
+  renderSamples();
+}
+
+async function scoreCurrentJd() {
+  scoreButton.disabled = true;
+  statusText.textContent = "Scoring...";
+  try {
+    const response = await fetch(apiUrl("/api/score"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: jobTitle.value,
+        jd_text: jobText.value,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error || "Scoring failed");
+    }
+    renderResult(payload);
+    statusText.textContent = payload.used_uniform_fallback
+      ? `Scored with fallback: ${payload.fallback_reason}. Adjust sliders and click Save.`
+      : "Scored successfully. Adjust sliders and click Save.";
+  } catch (error) {
+    statusText.textContent = error.message;
+  } finally {
+    scoreButton.disabled = false;
+  }
+}
+
+newCheckButton.addEventListener("click", () => {
+  jobTitle.value = "Untitled JD";
+  jobText.value = "";
+  statusText.textContent = "";
+  breakdownList.innerHTML = "";
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
+  const budgetTracker = document.getElementById("budgetTracker");
+  if (budgetTracker) budgetTracker.style.display = "none";
+  if (matchButton) matchButton.style.display = "none";
+  if (candidatesSection) candidatesSection.style.display = "none";
+});
+
+scoreButton.addEventListener("click", scoreCurrentJd);
+
+const resetButton = document.getElementById("resetButton");
+const saveButton = document.getElementById("saveButton");
+
+if (resetButton) {
+  resetButton.addEventListener("click", () => {
+    if (state.lastResult) {
+      renderResult(state.lastResult);
+    }
+  });
+}
+
+if (saveButton) {
+  saveButton.addEventListener("click", () => {
+    if (state.lastResult) {
+      saveHistory(state.lastResult);
+      statusText.textContent = "Scores saved! You can now match with candidates.";
+      if (matchButton) matchButton.style.display = "inline-block";
+    }
+  });
+}
+
+if (matchButton) {
+  matchButton.addEventListener("click", async () => {
+    matchButton.disabled = true;
+    matchButton.textContent = "Matching...";
+    try {
+      const response = await fetch(apiUrl("/api/match"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weights: state.currentWeights }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Matching failed");
+      renderCandidates(payload.matches);
+    } catch (error) {
+      statusText.textContent = error.message;
+    } finally {
+      matchButton.disabled = false;
+      matchButton.textContent = "Match with Students";
+    }
+  });
+}
+
+function renderCandidates(matches) {
+  candidatesSection.style.display = "block";
+  candidatesList.innerHTML = "";
+  matches.forEach((match) => {
+    const div = document.createElement("div");
+    div.className = "candidate-card";
+    const tooltipHtml = `
+      <div class="tooltip-grid">
+        <div>EC: ${match.scores.effective_communicator}</div>
+        <div>GC: ${match.scores.global_citizen}</div>
+        <div>CI: ${match.scores.creative_innovator}</div>
+        <div>CT: ${match.scores.critical_thinker}</div>
+        <div>RFF: ${match.scores.reflective_future_focused}</div>
+        <div>CR: ${match.scores.career_ready}</div>
+      </div>
+    `;
+    div.innerHTML = `
+      <span>${match.name}</span>
+      <span class="candidate-score">${match.match_score.toFixed(1)} / 100</span>
+      <div class="tooltip">${tooltipHtml}</div>
+    `;
+    candidatesList.appendChild(div);
+  });
+  candidatesSection.scrollIntoView({ behavior: "smooth" });
+}
+
+renderHistory();
+loadSamples().catch((error) => {
+  statusText.textContent = error.message;
+});

@@ -45,8 +45,8 @@ is not already present locally.
 # To analyze the main sample file:
 python -m employer_match.cli --jd sample_jd.txt
 
-# To analyze a specific job description from the jds/ folder:
-python -m employer_match.cli --jd jds/fbi.txt
+# To analyze a specific job description from the examples/jds/ folder:
+python -m employer_match.cli --jd examples/jds/fbi.txt
 ```
 
 JSON output:
@@ -68,6 +68,45 @@ Then open `http://127.0.0.1:8765`.
 The UI lets you load sample JDs, paste new JDs, run the Phase 0 scorer, see an
 overall score plus competency breakdown, and keep recent checks in browser
 storage.
+
+## Deployable Split
+
+The repo now has deployment boundaries for a Vercel-friendly demo:
+
+```text
+frontend/          # static browser UI; deploy this folder to Vercel
+backend/api/       # lightweight Python API, CORS, SQLite demo storage
+backend/scorer/    # scorer boundary notes; current scorer code remains in employer_match/
+employer_match/    # existing scorer package and local all-in-one web app
+```
+
+For a deployed demo, Vercel should use `frontend/` as the project root so it does
+not install `sentence-transformers`, `transformers`, `torch`, or model files.
+Run the Python API separately:
+
+```bash
+python -m backend.api.server
+```
+
+The API defaults to `http://127.0.0.1:8766` and exposes:
+
+```text
+GET /health
+GET /api/samples
+POST /api/score
+POST /api/match
+GET /api/checks
+POST /api/checks
+```
+
+For a Vercel plus ngrok demo:
+
+```bash
+ngrok http 8766
+```
+
+Then set `window.EMPLOYER_MATCH_API_BASE_URL` in `frontend/config.js` to the
+ngrok or hosted backend URL.
 
 ## Future Deployment Notes
 

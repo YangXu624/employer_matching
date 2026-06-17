@@ -13,7 +13,7 @@ def score_jd_file(
     rubric_path: Path | None = None,
     config: Config = DEFAULT_CONFIG,
 ) -> tuple[ScoreResult, Path]:
-    jd_text = jd_path.read_text()
+    jd_text = jd_path.read_text(encoding="utf-8")
     return score_jd_text(jd_text, rubric_path, config)
 
 

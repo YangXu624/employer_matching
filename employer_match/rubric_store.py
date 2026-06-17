@@ -42,7 +42,7 @@ def default_rubric_path() -> Path:
 
 def load_rubric(path: Path | str | None = None) -> Rubric:
     rubric_path = Path(path) if path is not None else default_rubric_path()
-    raw = json.loads(rubric_path.read_text())
+    raw = json.loads(rubric_path.read_text(encoding="utf-8"))
     return validate_rubric(raw)
 
 

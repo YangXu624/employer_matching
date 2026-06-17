@@ -23,7 +23,7 @@ Use these documents as the implementation source of truth:
 
 - `nlp.md`
 - `rubric-scoring-architecture (1).html`
-- `/Users/gsharsh/Downloads/pathcredits_rubric_long.json`
+- `docs/reference/pathcredits_rubric_long.json`
 - `/Users/gsharsh/Downloads/cursor-build-prompt.md`
 
 The Cursor build prompt supersedes earlier Ollama embedding ideas for Phase 0.

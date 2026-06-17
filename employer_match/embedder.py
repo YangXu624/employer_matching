@@ -101,7 +101,7 @@ def save_rubric_index(index: RubricEmbeddingIndex, path: Path) -> None:
 
 
 def load_rubric_index(path: Path) -> RubricEmbeddingIndex:
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     return RubricEmbeddingIndex(
         model_name=payload["model_name"],
         rubric_hash=payload["rubric_hash"],

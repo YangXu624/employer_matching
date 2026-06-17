@@ -51,7 +51,7 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
         sample_id = path.stem
         if sample_id in seen_ids:
             continue
-        body = path.read_text()
+        body = path.read_text(encoding="utf-8")
         try:
             display_path = str(path.relative_to(PROJECT_ROOT))
         except ValueError:
