@@ -1,11 +1,9 @@
 const state = {
-  samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
   lastResult: null,
   currentWeights: {},
 };
 
-const sampleList = document.querySelector("#sampleList");
 const historyList = document.querySelector("#historyList");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
@@ -49,14 +47,6 @@ function renderHistory() {
     if (item.result) {
       renderResult(item.result);
     }
-  });
-}
-
-function renderSamples() {
-  renderCards(sampleList, state.samples, (item) => {
-    jobTitle.value = item.title;
-    jobText.value = item.body;
-    statusText.textContent = `Loaded ${item.title}`;
   });
 }
 
@@ -240,13 +230,6 @@ function saveHistory(result) {
   renderHistory();
 }
 
-async function loadSamples() {
-  const response = await fetch("/api/samples");
-  const payload = await response.json();
-  state.samples = payload.samples || [];
-  renderSamples();
-}
-
 async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
@@ -365,6 +348,3 @@ function renderCandidates(matches) {
 }
 
 renderHistory();
-loadSamples().catch((error) => {
-  statusText.textContent = error.message;
-});
