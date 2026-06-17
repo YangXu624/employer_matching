@@ -1,10 +1,14 @@
+// If empty string, uses relative paths. Change to "https://your-ngrok-url.ngrok-free.app" if hosting frontend separately.
+const API_BASE_URL = "https://e1fb-69-122-192-234.ngrok-free.app";
+
 const state = {
+  samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
   lastResult: null,
   currentWeights: {},
 };
-
 const historyList = document.querySelector("#historyList");
+const sampleList = document.querySelector("#sampleList");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
 const statusText = document.querySelector("#statusText");
@@ -234,7 +238,7 @@ async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
   try {
-    const response = await fetch("/api/score", {
+    const response = await fetch(`${API_BASE_URL}/api/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -347,4 +351,31 @@ function renderCandidates(matches) {
   candidatesSection.scrollIntoView({ behavior: 'smooth' });
 }
 
+async function loadSamples() {
+  try {
+    const response = await fetch("/api/samples");
+    const data = await response.json();
+    renderCards(sampleList, data.samples || [], (item) => {
+      jobTitle.value = item.title;
+      jobText.value = item.body;
+      if (item.result) {
+        statusText.textContent = "Loaded pre-calculated result for sample.";
+        renderResult(item.result);
+      } else {
+        statusText.textContent = "Sample loaded. Click 'Score JD' to analyze.";
+        // Clear previous results if any
+        breakdownList.innerHTML = "";
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load samples:", error);
+    if (sampleList) sampleList.textContent = "Failed to load samples.";
+  }
+}
+
 renderHistory();
+loadSamples();

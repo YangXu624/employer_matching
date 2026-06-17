@@ -45,6 +45,15 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
             if directory.exists():
                 paths.extend(sorted(directory.glob("*.txt")))
 
+    results_path = PROJECT_ROOT / "employer_match" / "data" / "sample_results.json"
+    precalculated_results = {}
+    if results_path.exists():
+        try:
+            with open(results_path, "r", encoding="utf-8") as f:
+                precalculated_results = json.load(f)
+        except Exception as e:
+            print(f"Error loading sample results: {e}")
+
     samples = []
     seen_ids = set()
     for path in paths:
@@ -56,12 +65,14 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
             display_path = str(path.relative_to(PROJECT_ROOT))
         except ValueError:
             display_path = str(path)
+        sample_result = precalculated_results.get(sample_id)
         samples.append(
             {
                 "id": sample_id,
-                "title": title_from_sample(path, body),
+                "title": sample_result.get("title") if sample_result else title_from_sample(path, body),
                 "body": body,
                 "path": display_path,
+                "result": sample_result,
             }
         )
         seen_ids.add(sample_id)
@@ -150,6 +161,13 @@ def match_candidates(weights: dict[str, float]) -> list[dict]:
 class EmployerMatchHandler(BaseHTTPRequestHandler):
     server_version = "EmployerMatchMVP/0.1"
 
+    def do_OPTIONS(self) -> None:
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self) -> None:
         if self.path == "/" or self.path == "/index.html":
             self.serve_static("index.html")
@@ -208,6 +226,7 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
     def write_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
+        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
