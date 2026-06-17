@@ -23,6 +23,10 @@ function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
+function apiHeaders(extra = {}) {
+  return { "ngrok-skip-browser-warning": "true", ...extra };
+}
+
 function compactText(text, maxLength = 96) {
   const value = text.replace(/\s+/g, " ").trim();
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
@@ -242,7 +246,7 @@ async function scoreCurrentJd() {
   try {
     const response = await fetch(apiUrl("/api/score"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         title: jobTitle.value,
         jd_text: jobText.value,
@@ -311,7 +315,7 @@ if (matchButton) {
     try {
       const response = await fetch(apiUrl("/api/match"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: apiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ weights: state.currentWeights }),
       });
       const payload = await response.json();
