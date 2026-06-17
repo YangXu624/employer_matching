@@ -308,7 +308,7 @@ if (matchButton) {
     matchButton.disabled = true;
     matchButton.textContent = "Matching...";
     try {
-      const response = await fetch("/api/match", {
+      const response = await fetch(`${API_BASE_URL}/api/match`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ weights: state.currentWeights })
