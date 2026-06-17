@@ -71,11 +71,24 @@ function renderResult(result) {
   breakdownList.innerHTML = "";
   state.currentWeights = {};
 
-  result.competencies.forEach((competency) => {
-    if (competency.original_weight === undefined) {
-      competency.original_weight = Number(competency.weight || 0);
+  // Integerize the original AI weights exactly once so they sum to 100.
+  if (!result.is_integerized) {
+    let total = 0;
+    result.competencies.forEach((competency) => {
+      competency.ai_weight = Math.round(Number(competency.weight || 0));
+      competency.weight = competency.ai_weight;
+      total += competency.weight;
+    });
+    if (total !== 100 && result.competencies.length > 0) {
+      const diff = 100 - total;
+      result.competencies[0].weight += diff;
+      result.competencies[0].ai_weight += diff;
     }
-    state.currentWeights[competency.competency_id] = competency.original_weight;
+    result.is_integerized = true;
+  }
+
+  result.competencies.forEach((competency) => {
+    state.currentWeights[competency.competency_id] = competency.weight;
   });
 
   result.competencies.forEach((competency) => {
@@ -85,17 +98,27 @@ function renderResult(result) {
     row.innerHTML = `
       <header>
         <span>${competency.label}</span>
-        <span id="val-${id}">0.0 pts</span>
+        <div class="score-controls">
+          <input type="number" id="num-${id}" min="0" max="100" step="1" value="${competency.weight}" class="score-input" aria-label="${competency.label} weight">
+          <span style="color: var(--muted); font-size: 13px;">pts</span>
+        </div>
       </header>
-      <input type="range" id="slider-${id}" min="0" max="100" step="0.1" value="0" aria-label="${competency.label} weight">
+      <input type="range" id="slider-${id}" min="0" max="100" step="1" value="${competency.weight}" aria-label="${competency.label} slider">
       <div class="metric-meta">Level ${competency.matched_level} · similarity ${Number(competency.peak_similarity).toFixed(3)}</div>
     `;
     breakdownList.appendChild(row);
 
     const slider = row.querySelector(`#slider-${id}`);
-    slider.addEventListener("input", (event) => {
-      handleSliderChange(id, parseFloat(event.target.value));
-    });
+    const numInput = row.querySelector(`#num-${id}`);
+
+    const syncValue = (value) => {
+      let nextValue = parseInt(value, 10);
+      if (Number.isNaN(nextValue)) nextValue = 0;
+      handleSliderChange(id, nextValue);
+    };
+
+    slider.addEventListener("input", (event) => syncValue(event.target.value));
+    numInput.addEventListener("input", (event) => syncValue(event.target.value));
   });
 
   updateDOM();
@@ -127,11 +150,13 @@ function updateDOM() {
     totalWeight += weight;
     competency.weight = weight;
 
-    const valSpan = document.getElementById(`val-${id}`);
-    if (valSpan) valSpan.textContent = `${weight.toFixed(1)} pts`;
+    const numInput = document.getElementById(`num-${id}`);
+    if (numInput && parseInt(numInput.value, 10) !== weight) {
+      numInput.value = weight;
+    }
 
     const slider = document.getElementById(`slider-${id}`);
-    if (slider && Math.abs(parseFloat(slider.value) - weight) > 0.01) {
+    if (slider && parseInt(slider.value, 10) !== weight) {
       slider.value = weight;
     }
 
@@ -145,20 +170,20 @@ function updateDOM() {
 
   if (budgetTracker) {
     budgetTracker.style.display = "block";
-    const difference = (100 - totalWeight).toFixed(1);
+    const difference = 100 - totalWeight;
 
-    if (Math.abs(totalWeight - 100) < 0.1) {
-      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (Perfect)`;
+    if (totalWeight === 100) {
+      budgetText.textContent = "Allocated: 100 / 100 (Perfect)";
       budgetText.className = "success";
       saveBtn.disabled = false;
     } else if (totalWeight > 100) {
-      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (Over by ${Math.abs(difference)})`;
+      budgetText.textContent = `Allocated: ${totalWeight} / 100 (Over by ${Math.abs(difference)})`;
       budgetText.className = "error";
       saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
       if (candidatesSection) candidatesSection.style.display = "none";
     } else {
-      budgetText.textContent = `Allocated: ${totalWeight.toFixed(1)} / 100 (${difference} remaining)`;
+      budgetText.textContent = `Allocated: ${totalWeight} / 100 (${difference} remaining)`;
       budgetText.className = "error";
       saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
@@ -278,6 +303,9 @@ const saveButton = document.getElementById("saveButton");
 if (resetButton) {
   resetButton.addEventListener("click", () => {
     if (state.lastResult) {
+      state.lastResult.competencies.forEach((competency) => {
+        competency.weight = competency.ai_weight;
+      });
       renderResult(state.lastResult);
     }
   });
