@@ -161,11 +161,14 @@ def match_candidates(weights: dict[str, float]) -> list[dict]:
 class EmployerMatchHandler(BaseHTTPRequestHandler):
     server_version = "EmployerMatchMVP/0.1"
 
-    def do_OPTIONS(self) -> None:
-        self.send_response(HTTPStatus.OK)
+    def end_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning")
+        super().end_headers()
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(HTTPStatus.OK)
         self.end_headers()
 
     def do_GET(self) -> None:
@@ -226,14 +229,13 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
     def write_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
     def log_message(self, format: str, *args) -> None:
-        return
+        print(f"[{self.date_time_string()}] {format % args}")
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:

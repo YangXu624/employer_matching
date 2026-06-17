@@ -7,6 +7,7 @@ const state = {
 };
 
 const historyList = document.querySelector("#historyList");
+const sampleList = document.querySelector("#sampleList");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
 const statusText = document.querySelector("#statusText");
@@ -356,4 +357,33 @@ function renderCandidates(matches) {
   candidatesSection.scrollIntoView({ behavior: "smooth" });
 }
 
+async function loadSamples() {
+  try {
+    const response = await fetch(apiUrl("/api/samples"), {
+      headers: apiHeaders(),
+    });
+    const data = await response.json();
+    renderCards(sampleList, data.samples || [], (item) => {
+      jobTitle.value = item.title;
+      jobText.value = item.body;
+      if (item.result) {
+        statusText.textContent = "Loaded pre-calculated result for sample.";
+        renderResult(item.result);
+      } else {
+        statusText.textContent = "Sample loaded. Click 'Score JD' to analyze.";
+        // Clear previous results if any
+        breakdownList.innerHTML = "";
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load samples:", error);
+    if (sampleList) sampleList.textContent = "Failed to load samples.";
+  }
+}
+
 renderHistory();
+loadSamples();
