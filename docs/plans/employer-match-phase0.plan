@@ -17,6 +17,47 @@ Phase 0 is intentionally narrow:
 - No candidate ranking.
 - No LLM provider implementation.
 
+## Next Phase: Optional Gemini Review Layer
+
+Phase 0 remains deterministic and defaults to `No LLM`. The next phase should
+add an optional Gemini review layer without replacing or duplicating the
+embedding-based scorer. The baseline scorer should always run first; when the
+user selects Gemini mode, Gemini reviews the baseline competency levels and
+weights and returns structured adjustments with concise reasons.
+
+Next-phase scope:
+
+- Add `.env` support for local secrets, including `GEMINI_API_KEY`.
+- Commit a `.env.example` template, but never commit real secrets.
+- Ensure `.env` is ignored by git.
+- Add a frontend scoring-mode toggle with labeled options:
+  - `No LLM`
+  - `Gemini`
+- Extend backend `/api/score` to accept `llm_provider`.
+- Keep `llm_provider` values narrow: `off` and `gemini`.
+- Preserve `off` as the default for CLI, API, and UI behavior.
+- Add Gemini as a review layer over the baseline result, not a replacement
+  scoring path.
+- If Gemini is unavailable, misconfigured, times out, or returns invalid JSON,
+  return the baseline result with an explicit fallback status instead of
+  crashing.
+
+Out of scope for this next phase:
+
+- Cost analysis.
+- Multi-JD benchmark reporting.
+- Hetal-facing decision report generation.
+- Additional LLM providers beyond Gemini.
+
+Code cleanliness constraints:
+
+- Do not duplicate deterministic scorer logic in the LLM path.
+- Keep provider-specific code isolated under an LLM module.
+- Keep the prompt, JSON parsing, fallback handling, and provider selection easy
+  to test independently.
+- Keep API response additions small and explicit so the frontend can explain
+  whether a score came from `No LLM`, Gemini review, or Gemini fallback.
+
 ## Source Inputs
 
 Use these documents as the implementation source of truth:
@@ -47,7 +88,9 @@ The six competencies are fixed and must remain in this order:
 - Default embedding model: `BAAI/bge-base-en-v1.5`.
 - Core dependencies: `sentence-transformers`, `numpy`.
 - Phase 1 may add `pandas` for PathCredits CSV ingestion.
-- Optional LLM dependencies must not be required in Phase 0.
+- Optional LLM dependencies must not be required in Phase 0. In the optional
+  Gemini review phase, keep any Gemini dependency optional and isolated from the
+  default `No LLM` path.
 - Embed only rubric `levels`; never embed `_meta` or `definition`.
 - L2-normalize all vectors so cosine similarity is a dot product.
 - Treat JD text and rubric level descriptions symmetrically.
@@ -84,7 +127,9 @@ Only build the Phase 0 pieces now:
 - `data/rubric.json`
 
 LLM providers and matcher can remain absent or stubbed only if needed for import
-stability. Do not implement their behavior in Phase 0.
+stability. Do not implement their behavior in Phase 0. The first LLM provider
+to implement after Phase 0 should be Gemini, as an optional review layer over
+the deterministic scorer.
 
 ## Phase 0 CLI Contract
 
