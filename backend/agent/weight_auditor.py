@@ -47,23 +47,35 @@ COMPETENCY_GLOSSARY = {
 
 MAX_ITERATIONS = 3
 WEIGHT_BUDGET = 100
+NO_CHANGE_EVIDENCE = "no change"
 
 
 class CompetencyCorrection(BaseModel):
     competency_id: str = Field(description="One of the six fixed competency ids.")
     weight: int = Field(description="Corrected importance weight from 0 to 100.")
-    reason: str = Field(description="Short justification for the corrected weight.")
+    changed: bool = Field(
+        description=(
+            "True only when the embedding weight has a clear error and should be corrected. "
+            "False when the baseline should be kept."
+        )
+    )
+    reason: str = Field(description="Short justification for keeping or changing the weight.")
     evidence: str = Field(
         description=(
-            "A short JD quote that supports the weight, the negation that lowers it, or "
-            "'implied: ...' when the signal is inferred rather than stated."
+            "For changes: a JD quote, negation, or 'implied: ...'. "
+            "For no change: use 'no change'."
         )
     )
 
 
 class AuditOutput(BaseModel):
     corrections: list[CompetencyCorrection]
-    summary: str = Field(description="One sentence describing the key changes made.")
+    summary: str = Field(
+        description=(
+            "One sentence summarizing corrections made, or stating that no corrections "
+            "were needed."
+        )
+    )
 
 
 class AuditState(TypedDict, total=False):
@@ -71,6 +83,7 @@ class AuditState(TypedDict, total=False):
     baseline: dict[str, int]
     signals: dict[str, dict[str, float]]
     proposed: dict[str, int]
+    changed_flags: dict[str, bool]
     reasons: dict[str, str]
     evidence: dict[str, str]
     summary: str
@@ -79,19 +92,23 @@ class AuditState(TypedDict, total=False):
 
 
 SYSTEM_PROMPT = (
-    "You audit competency weightings for job descriptions. An embedding model produced baseline "
-    "weights (summing to 100) across six fixed PathCredits competencies. That model is keyword- and "
-    "surface-driven, so it makes two kinds of mistakes:\n"
-    "1. False positives from context/negation: it scores a competency high just because a related "
-    "word appears, even when the JD negates or de-emphasizes it (e.g. 'no communication with "
-    "stakeholders is required' should make Effective Communicator low).\n"
-    "2. Missed implied signals: it under-scores a competency that is clearly implied by the role but "
-    "never named (e.g. coordinating overseas teams implies Global Citizen).\n\n"
-    "Read the JD and correct the weights to reflect true importance to the role. Keep weights you "
-    "agree with unchanged. Change a weight only when the JD justifies it, and you may change it by "
-    "any amount (including down to 0). For every competency, return the corrected integer weight, a "
-    "short reason, and evidence (a JD quote, the negation, or 'implied: ...'). Return all six "
-    "competencies."
+    "You are a conservative second-opinion reviewer for competency weightings on job "
+    "descriptions. An embedding model produced baseline weights (summing to 100) across six "
+    "fixed PathCredits competencies.\n\n"
+    "Your default is to KEEP each baseline weight unchanged. Only set changed=true when you find "
+    "a CLEAR embedding error:\n"
+    "1. Negation / de-emphasis false positive — a related word appears but the JD negates or "
+    "de-emphasizes that competency (e.g. 'no communication with stakeholders is required').\n"
+    "2. Strong implied signal — a competency is clearly central to the role but the embedding "
+    "under-scored it (e.g. coordinating across offices in Japan, Germany, and Brazil implies "
+    "Global Citizen).\n\n"
+    "Do NOT change weights for minor wording differences, vague inference, or 'could be slightly "
+    "higher/lower.' If unsure, keep changed=false and the baseline weight. Most JDs need 0–2 "
+    "changes, not all six.\n\n"
+    "For each competency return: weight, changed, reason, and evidence. "
+    "If changed=false, weight MUST equal the baseline and evidence MUST be 'no change'. "
+    "If changed=true, weight may differ by any amount and evidence must cite the JD or "
+    "'implied: ...'. Return all six competencies."
 )
 
 
@@ -125,7 +142,10 @@ def _build_human_prompt(state: AuditState) -> str:
 
 
 def _normalize_ints(weights: dict[str, float], budget: int = WEIGHT_BUDGET) -> dict[str, int]:
-    keys = COMPETENCY_ORDER
+    keys = list(weights.keys())
+    if not keys:
+        return {}
+
     vals = [max(0.0, float(weights.get(k, 0))) for k in keys]
     total = sum(vals)
     if total <= 0:
@@ -143,6 +163,38 @@ def _normalize_ints(weights: dict[str, float], budget: int = WEIGHT_BUDGET) -> d
     return {keys[i]: floors[i] for i in range(len(keys))}
 
 
+def _finalize_weights(
+    baseline: dict[str, int],
+    proposed: dict[str, int],
+    changed_flags: dict[str, bool],
+) -> dict[str, int]:
+    result = dict(baseline)
+    changed_ids = [
+        cid
+        for cid in COMPETENCY_ORDER
+        if changed_flags.get(cid) and proposed.get(cid, baseline[cid]) != baseline[cid]
+    ]
+
+    if not changed_ids:
+        return result
+
+    for cid in changed_ids:
+        result[cid] = int(proposed[cid])
+
+    pinned_sum = sum(result[cid] for cid in COMPETENCY_ORDER if cid not in changed_ids)
+    changed_budget = WEIGHT_BUDGET - pinned_sum
+    changed_weights = {cid: float(result[cid]) for cid in changed_ids}
+    normalized_changed = _normalize_ints(changed_weights, budget=changed_budget)
+    for cid in changed_ids:
+        result[cid] = normalized_changed[cid]
+
+    diff = WEIGHT_BUDGET - sum(result[cid] for cid in COMPETENCY_ORDER)
+    if diff and changed_ids:
+        result[changed_ids[0]] += diff
+
+    return result
+
+
 def _propose(state: AuditState) -> AuditState:
     llm = get_llm().with_structured_output(AuditOutput)
     messages = [
@@ -152,18 +204,21 @@ def _propose(state: AuditState) -> AuditState:
     result: AuditOutput = llm.invoke(messages)
 
     proposed: dict[str, int] = {}
+    changed_flags: dict[str, bool] = {}
     reasons: dict[str, str] = {}
     evidence: dict[str, str] = {}
     for item in result.corrections:
         cid = item.competency_id.strip()
         if cid in COMPETENCY_ORDER:
             proposed[cid] = int(item.weight)
+            changed_flags[cid] = bool(item.changed)
             reasons[cid] = item.reason.strip()
             evidence[cid] = item.evidence.strip()
 
     return {
         **state,
         "proposed": proposed,
+        "changed_flags": changed_flags,
         "reasons": reasons,
         "evidence": evidence,
         "summary": result.summary.strip(),
@@ -174,6 +229,7 @@ def _propose(state: AuditState) -> AuditState:
 def _validate(state: AuditState) -> AuditState:
     baseline = state.get("baseline", {})
     proposed = state.get("proposed", {})
+    changed_flags = state.get("changed_flags", {})
     reasons = state.get("reasons", {})
     evidence = state.get("evidence", {})
     errors: list[str] = []
@@ -182,17 +238,34 @@ def _validate(state: AuditState) -> AuditState:
         if cid not in proposed:
             errors.append(f"Missing competency: {cid}")
             continue
+
         value = proposed[cid]
+        base = baseline.get(cid, 0)
+        changed = changed_flags.get(cid, False)
+
         if not isinstance(value, int) or value < 0 or value > 100:
             errors.append(f"{cid} weight must be an integer between 0 and 100.")
             continue
-        if value != baseline.get(cid) and (not reasons.get(cid) or not evidence.get(cid)):
-            errors.append(f"{cid} changed without a reason and evidence.")
+
+        ev = (evidence.get(cid) or "").strip().lower()
+        if not changed:
+            if value != base:
+                errors.append(f"{cid} has changed=false but weight {value} != baseline {base}.")
+            if ev != NO_CHANGE_EVIDENCE:
+                errors.append(f"{cid} unchanged entries must use evidence 'no change'.")
+            continue
+
+        if not reasons.get(cid) or not evidence.get(cid):
+            errors.append(f"{cid} changed=true requires a reason and evidence.")
+        elif ev == NO_CHANGE_EVIDENCE:
+            errors.append(f"{cid} changed=true cannot use evidence 'no change'.")
+        elif value == base:
+            errors.append(f"{cid} changed=true but weight equals baseline; set changed=false.")
 
     will_retry = bool(errors) and state.get("iterations", 0) < MAX_ITERATIONS
     if not will_retry:
-        source = proposed if proposed else baseline
-        state = {**state, "proposed": _normalize_ints(source)}
+        finalized = _finalize_weights(baseline, proposed, changed_flags)
+        state = {**state, "proposed": finalized}
 
     return {**state, "errors": errors}
 
@@ -241,11 +314,16 @@ def audit_weights(
     corrected = final_state.get("proposed", clean_baseline)
     reasons = final_state.get("reasons", {})
     evidence = final_state.get("evidence", {})
+    changed_flags = final_state.get("changed_flags", {})
 
     competencies = []
+    changes_count = 0
     for cid in COMPETENCY_ORDER:
         base = clean_baseline[cid]
         new = int(corrected.get(cid, base))
+        changed = bool(changed_flags.get(cid)) and new != base
+        if changed:
+            changes_count += 1
         competencies.append(
             {
                 "competency_id": cid,
@@ -253,16 +331,22 @@ def audit_weights(
                 "baseline": base,
                 "corrected": new,
                 "delta": new - base,
+                "changed": changed,
                 "reason": reasons.get(cid, ""),
                 "evidence": evidence.get(cid, ""),
             }
         )
 
+    summary = final_state.get("summary", "")
+    if changes_count == 0:
+        summary = "No corrections suggested — embedding weights look reasonable for this JD."
+
     return {
         "model": DEFAULT_MODEL,
         "iterations": final_state.get("iterations", 0),
+        "changes_count": changes_count,
         "baseline": clean_baseline,
         "corrected": {cid: int(corrected.get(cid, clean_baseline[cid])) for cid in COMPETENCY_ORDER},
         "competencies": competencies,
-        "summary": final_state.get("summary", ""),
+        "summary": summary,
     }

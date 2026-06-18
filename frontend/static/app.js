@@ -1,12 +1,15 @@
 const API_BASE_URL = (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
 
 const state = {
+  samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
   lastResult: null,
   currentWeights: {},
 };
 
+const sampleList = document.querySelector("#sampleList");
 const historyList = document.querySelector("#historyList");
+const clearHistoryButton = document.querySelector("#clearHistoryButton");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
 const statusText = document.querySelector("#statusText");
@@ -44,11 +47,11 @@ function compactText(text, maxLength = 96) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }
 
-function renderCards(container, items, onClick) {
+function renderCards(container, items, onClick, emptyText = "No saved checks yet.") {
   container.innerHTML = "";
   if (!items.length) {
     container.classList.add("empty-list");
-    container.textContent = "No saved checks yet.";
+    container.textContent = emptyText;
     return;
   }
   container.classList.remove("empty-list");
@@ -62,14 +65,97 @@ function renderCards(container, items, onClick) {
   });
 }
 
+function persistHistory() {
+  localStorage.setItem("employerMatchHistory", JSON.stringify(state.history));
+  renderHistory();
+}
+
+function deleteHistoryItem(index) {
+  state.history = state.history.filter((_, i) => i !== index);
+  persistHistory();
+}
+
+function clearHistory() {
+  state.history = [];
+  persistHistory();
+  statusText.textContent = "Cleared saved JD checks.";
+}
+
 function renderHistory() {
-  renderCards(historyList, state.history, (item) => {
-    jobTitle.value = item.title;
-    jobText.value = item.body;
-    if (item.result) {
-      renderResult(item.result);
-    }
+  historyList.innerHTML = "";
+  if (!state.history.length) {
+    historyList.classList.add("empty-list");
+    historyList.textContent = "No saved checks yet.";
+    if (clearHistoryButton) clearHistoryButton.hidden = true;
+    return;
+  }
+
+  historyList.classList.remove("empty-list");
+  if (clearHistoryButton) clearHistoryButton.hidden = false;
+
+  state.history.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "history-row";
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "item-card";
+    openButton.innerHTML = `<strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(compactText(item.body || item.summary || ""))}</span>`;
+    openButton.addEventListener("click", () => {
+      jobTitle.value = item.title;
+      jobText.value = item.body;
+      if (item.result) {
+        renderResult(item.result);
+      }
+      statusText.textContent = `Loaded ${item.title}`;
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "delete-history-btn";
+    deleteButton.setAttribute("aria-label", `Delete ${item.title}`);
+    deleteButton.title = "Delete";
+    deleteButton.textContent = "\u00d7";
+    deleteButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteHistoryItem(index);
+    });
+
+    row.appendChild(openButton);
+    row.appendChild(deleteButton);
+    historyList.appendChild(row);
   });
+}
+
+function renderSamples() {
+  renderCards(
+    sampleList,
+    state.samples,
+    (item) => {
+      jobTitle.value = item.title;
+      jobText.value = item.body;
+      statusText.textContent = `Loaded ${item.title}`;
+      breakdownList.innerHTML = "";
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+      const budgetTracker = document.getElementById("budgetTracker");
+      if (budgetTracker) budgetTracker.style.display = "none";
+      if (matchButton) matchButton.style.display = "none";
+      if (candidatesSection) candidatesSection.style.display = "none";
+      hideAudit();
+    },
+    "No sample JDs found.",
+  );
+}
+
+async function loadSamples() {
+  const response = await fetch(apiUrl("/api/samples"), { headers: apiHeaders() });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Failed to load samples");
+  state.samples = payload.samples || [];
+  renderSamples();
 }
 
 function renderResult(result) {
@@ -248,8 +334,7 @@ function saveHistory(result) {
     savedAt: new Date().toISOString(),
   };
   state.history = [item, ...state.history.filter((entry) => entry.body !== item.body)].slice(0, 12);
-  localStorage.setItem("employerMatchHistory", JSON.stringify(state.history));
-  renderHistory();
+  persistHistory();
 }
 
 async function scoreCurrentJd() {
@@ -354,37 +439,60 @@ function renderAudit(data) {
   auditSummary.textContent = data.summary || "";
   auditResults.innerHTML = "";
 
+  const changesCount = data.changes_count ?? data.competencies.filter((c) => c.changed).length;
+
   data.competencies.forEach((competency) => {
-    const delta = competency.delta;
-    const arrow = delta > 0 ? "\u25B2" : delta < 0 ? "\u25BC" : "\u2014";
-    const deltaClass = delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : "delta-same";
+    const changed = competency.changed === true;
     const card = document.createElement("div");
-    card.className = "audit-card";
-    card.innerHTML = `
-      <div class="audit-head">
-        <strong>${escapeHtml(competency.label)}</strong>
-        <span class="audit-nums">
-          <span class="audit-base">${competency.baseline}</span>
-          <span class="audit-arrow ${deltaClass}">\u2192 ${competency.corrected} ${arrow}</span>
-        </span>
-      </div>
-      <div class="audit-reason">${escapeHtml(competency.reason)}</div>
-      ${competency.evidence ? `<div class="audit-evidence">${escapeHtml(competency.evidence)}</div>` : ""}
-    `;
+    card.className = changed ? "audit-card" : "audit-card unchanged";
+
+    if (changed) {
+      const delta = competency.delta;
+      const arrow = delta > 0 ? "\u25B2" : delta < 0 ? "\u25BC" : "\u2014";
+      const deltaClass = delta > 0 ? "delta-up" : delta < 0 ? "delta-down" : "delta-same";
+      card.innerHTML = `
+        <div class="audit-head">
+          <strong>${escapeHtml(competency.label)}</strong>
+          <span class="audit-nums">
+            <span class="audit-base">${competency.baseline}</span>
+            <span class="audit-arrow ${deltaClass}">\u2192 ${competency.corrected} ${arrow}</span>
+          </span>
+        </div>
+        <div class="audit-reason">${escapeHtml(competency.reason)}</div>
+        ${competency.evidence ? `<div class="audit-evidence">${escapeHtml(competency.evidence)}</div>` : ""}
+      `;
+    } else {
+      card.innerHTML = `
+        <div class="audit-head">
+          <strong>${escapeHtml(competency.label)}</strong>
+          <span class="audit-nums audit-no-change">${competency.baseline} — no change</span>
+        </div>
+        <div class="audit-reason">${escapeHtml(competency.reason || "Embedding weight aligns with JD.")}</div>
+      `;
+    }
+
     auditResults.appendChild(card);
   });
 
-  applyAuditButton.style.display = "block";
-  applyAuditButton.onclick = () => {
-    const updated = { ...state.currentWeights };
-    data.competencies.forEach((competency) => {
-      updated[competency.competency_id] = competency.corrected;
-    });
-    state.currentWeights = updated;
-    updateDOM();
-    hideAudit();
-    statusText.textContent = "Applied AI corrections. Review the sliders and Save.";
-  };
+  if (changesCount > 0) {
+    applyAuditButton.style.display = "block";
+    applyAuditButton.disabled = false;
+    applyAuditButton.onclick = () => {
+      const updated = { ...state.currentWeights };
+      data.competencies.forEach((competency) => {
+        if (competency.changed) {
+          updated[competency.competency_id] = competency.corrected;
+        }
+      });
+      state.currentWeights = updated;
+      updateDOM();
+      hideAudit();
+      statusText.textContent = "Applied AI corrections. Review the sliders and Save.";
+    };
+  } else {
+    applyAuditButton.style.display = "none";
+    applyAuditButton.onclick = null;
+  }
 
   auditSection.scrollIntoView({ behavior: "smooth" });
 }
@@ -408,7 +516,10 @@ async function auditWeights() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Audit failed");
     renderAudit(payload);
-    statusText.textContent = `AI audit complete (${payload.model}). Review and apply corrections.`;
+    statusText.textContent =
+      payload.changes_count > 0
+        ? `AI audit complete (${payload.model}). ${payload.changes_count} correction(s) suggested.`
+        : `AI audit complete (${payload.model}). No corrections needed.`;
   } catch (error) {
     statusText.textContent = error.message;
   } finally {
@@ -419,6 +530,10 @@ async function auditWeights() {
 
 if (auditButton) {
   auditButton.addEventListener("click", auditWeights);
+}
+
+if (clearHistoryButton) {
+  clearHistoryButton.addEventListener("click", clearHistory);
 }
 
 function renderCandidates(matches) {
@@ -448,3 +563,6 @@ function renderCandidates(matches) {
 }
 
 renderHistory();
+loadSamples().catch((error) => {
+  statusText.textContent = error.message;
+});

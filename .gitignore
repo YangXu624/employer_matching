@@ -9,3 +9,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Seeker scoring pipeline (imported) - contains student PII and secrets, keep local-only for now
+passport_agent/
