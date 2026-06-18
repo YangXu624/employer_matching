@@ -127,35 +127,46 @@ function renderHistory() {
   });
 }
 
-function renderSamples() {
-  renderCards(
-    sampleList,
-    state.samples,
-    (item) => {
-      jobTitle.value = item.title;
-      jobText.value = item.body;
-      statusText.textContent = `Loaded ${item.title}`;
-      breakdownList.innerHTML = "";
-      if (chartInstance) {
-        chartInstance.destroy();
-        chartInstance = null;
-      }
-      const budgetTracker = document.getElementById("budgetTracker");
-      if (budgetTracker) budgetTracker.style.display = "none";
-      if (matchButton) matchButton.style.display = "none";
-      if (candidatesSection) candidatesSection.style.display = "none";
-      hideAudit();
-    },
-    "No sample JDs found.",
-  );
-}
-
 async function loadSamples() {
-  const response = await fetch(apiUrl("/api/samples"), { headers: apiHeaders() });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Failed to load samples");
-  state.samples = payload.samples || [];
-  renderSamples();
+  try {
+    const response = await fetch(apiUrl("/api/samples"), { headers: apiHeaders() });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Failed to load samples");
+    state.samples = payload.samples || [];
+    renderCards(
+      sampleList,
+      state.samples,
+      (item) => {
+        jobTitle.value = item.title;
+        jobText.value = item.body;
+        hideAudit();
+        if (item.result) {
+          statusText.textContent = "Loaded pre-calculated result for sample.";
+          if (matchButton) matchButton.style.display = "none";
+          if (candidatesSection) candidatesSection.style.display = "none";
+          renderResult(item.result);
+        } else {
+          statusText.textContent = "Sample loaded. Click 'Score JD' to analyze.";
+          breakdownList.innerHTML = "";
+          if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+          }
+          const budgetTracker = document.getElementById("budgetTracker");
+          if (budgetTracker) budgetTracker.style.display = "none";
+          if (matchButton) matchButton.style.display = "none";
+          if (candidatesSection) candidatesSection.style.display = "none";
+        }
+      },
+      "No sample JDs found.",
+    );
+  } catch (error) {
+    console.error("Failed to load samples:", error);
+    if (sampleList) {
+      sampleList.classList.add("empty-list");
+      sampleList.textContent = error.message || "Failed to load samples.";
+    }
+  }
 }
 
 function renderResult(result) {
@@ -563,6 +574,4 @@ function renderCandidates(matches) {
 }
 
 renderHistory();
-loadSamples().catch((error) => {
-  statusText.textContent = error.message;
-});
+loadSamples();

@@ -75,13 +75,26 @@
 
   <p class="eyebrow">System architecture · working draft</p>
   <h1>Automated rubric scoring</h1>
-  <p class="lede">A low-cost pipeline that scores each input against a written rubric, with an optional AI layer we switch on only when accuracy matters more than cost.</p>
+  <p class="lede">A zero-friction pipeline that extracts job requirements directly from existing JDs, matching them against Student Passports to find the highest-fit candidates.</p>
+
+  <hr class="rule">
+
+  <section class="section">
+    <h2>The Problem</h2>
+    <p>Employers are reluctant to manually input detailed competency requirements or fill out complex forms just to use a new hiring platform. This "onboarding friction" often prevents high-quality roles from being listed, as the manual effort required is perceived as too high for a specialized student pool.</p>
+  </section>
+
+  <section class="section">
+    <h2>The Solution: Automated Extraction</h2>
+    <p>We eliminate manual entry by <strong>automatically extracting</strong> the importance of each competency directly from the employer's existing Job Description. By turning their plain-text JD into a structured "Employer Profile," we make SpeakHire incredibly easy to adopt. Employers simply "paste and go," with the option to fine-tune the AI's first guess if they choose.</p>
+    <p>To ensure this remains scalable and affordable, we implemented a <strong>cost-saving toggle</strong> for the LLM-check mode. It can be switched off to use lightweight embedding math for bulk processing, and only turned on when high-precision reasoning or negation-checking is required for a specific role.</p>
+  </section>
 
   <hr class="rule">
 
   <section class="section">
     <h2>The idea in one line</h2>
-    <p>We turn a written rubric into the scoring engine. Every criterion has six level descriptions (5 down to 0). The system reads an input, measures which level it most resembles, and assigns that level's number — automatically, and traceably. An optional language-model layer can be switched on to catch the few cases plain matching gets wrong.</p>
+    <p>We turn a written rubric into a scoring engine for job descriptions, generating a weighted "Employer Profile" that we then intersect with "Student Passports" to find the highest-fit matches.</p>
   </section>
 
   <hr class="rule">
@@ -89,39 +102,40 @@
   <section class="section">
     <h2>The architecture at a glance</h2>
     <figure>
-      <svg viewBox="0 0 680 300" role="img" aria-label="Architecture: input is scored by rubric matching with embeddings, an optional LLM check can be toggled on or skipped, producing final scores per criterion.">
+      <svg viewBox="0 0 680 300" role="img" aria-label="Architecture: JD input is scored by rubric, combined with Student Passport metrics, producing a final Fit Score.">
         <defs>
           <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M2 1L8 5L2 9" fill="none" stroke="#8A8F8B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </marker>
         </defs>
 
-        <path d="M 300 120 L 300 86 L 580 86 L 580 116" fill="none" stroke="#B7BAB4" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#ar)"/>
-        <text class="ds" x="440" y="78" text-anchor="middle" fill="#737A74">LLM off — skip the check</text>
+        <rect x="20" y="120" width="100" height="56" rx="9" fill="#F1F0EA" stroke="#DAD9D1" stroke-width="1"/>
+        <text class="dt" x="70" y="142" text-anchor="middle" dominant-baseline="central" fill="#2A332F">Input JD</text>
 
-        <rect x="40" y="120" width="120" height="56" rx="9" fill="#F1F0EA" stroke="#DAD9D1" stroke-width="1"/>
-        <text class="dt" x="100" y="142" text-anchor="middle" dominant-baseline="central" fill="#2A332F">Input text</text>
-        <text class="ds" x="100" y="160" text-anchor="middle" dominant-baseline="central" fill="#737A74">JD or submission</text>
+        <rect x="140" y="120" width="100" height="56" rx="9" fill="#E3F1EB" stroke="#0E8A66" stroke-width="1"/>
+        <text class="dt" x="190" y="142" text-anchor="middle" dominant-baseline="central" fill="#0B5E48">Rubric Match</text>
 
-        <rect x="200" y="120" width="120" height="56" rx="9" fill="#E3F1EB" stroke="#0E8A66" stroke-width="1"/>
-        <text class="dt" x="260" y="142" text-anchor="middle" dominant-baseline="central" fill="#0B5E48">Rubric match</text>
-        <text class="ds" x="260" y="160" text-anchor="middle" dominant-baseline="central" fill="#2E7D63">embeddings</text>
+        <rect x="260" y="120" width="110" height="56" rx="9" fill="#F1F0EA" stroke="#DAD9D1" stroke-width="1"/>
+        <text class="dt" x="315" y="142" text-anchor="middle" dominant-baseline="central" fill="#2A332F">Employer Profile</text>
+        <text class="ds" x="315" y="160" text-anchor="middle" dominant-baseline="central" fill="#737A74">weights</text>
 
-        <rect x="360" y="120" width="120" height="56" rx="9" fill="#ECEAF8" stroke="#6B5CC4" stroke-width="1" stroke-dasharray="5 4"/>
-        <text class="dt" x="420" y="142" text-anchor="middle" dominant-baseline="central" fill="#463C8C">LLM check</text>
-        <text class="ds" x="420" y="160" text-anchor="middle" dominant-baseline="central" fill="#6B5CC4">optional</text>
+        <rect x="400" y="120" width="110" height="56" rx="9" fill="#ECEAF8" stroke="#6B5CC4" stroke-width="1"/>
+        <text class="dt" x="455" y="142" text-anchor="middle" dominant-baseline="central" fill="#463C8C">Student Passport</text>
+        <text class="ds" x="455" y="160" text-anchor="middle" dominant-baseline="central" fill="#6B5CC4">metric scores</text>
 
-        <rect x="520" y="120" width="120" height="56" rx="9" fill="#F1F0EA" stroke="#DAD9D1" stroke-width="1"/>
-        <text class="dt" x="580" y="142" text-anchor="middle" dominant-baseline="central" fill="#2A332F">Final scores</text>
-        <text class="ds" x="580" y="160" text-anchor="middle" dominant-baseline="central" fill="#737A74">per criterion</text>
+        <rect x="540" y="120" width="120" height="56" rx="9" fill="#E3F1EB" stroke="#0E8A66" stroke-width="1"/>
+        <text class="dt" x="600" y="142" text-anchor="middle" dominant-baseline="central" fill="#0B5E48">Final Fit Score</text>
+        <text class="ds" x="600" y="160" text-anchor="middle" dominant-baseline="central" fill="#2E7D63">weighted average</text>
 
-        <line x1="162" y1="148" x2="198" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
-        <line x1="322" y1="148" x2="358" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
-        <line x1="482" y1="148" x2="518" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="122" y1="148" x2="138" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="242" y1="148" x2="258" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="372" y1="148" x2="398" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
+        <line x1="512" y1="148" x2="538" y2="148" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
+      </svg>
 
         <rect x="200" y="214" width="120" height="44" rx="9" fill="#F1F0EA" stroke="#DAD9D1" stroke-width="1"/>
         <text class="dt" x="260" y="229" text-anchor="middle" dominant-baseline="central" fill="#2A332F">Rubric</text>
-        <text class="ds" x="260" y="247" text-anchor="middle" dominant-baseline="central" fill="#737A74">levels 5 – 0</text>
+        <text class="ds" x="260" y="247" text-anchor="middle" dominant-baseline="central" fill="#737A74">levels 5 – 1</text>
         <line x1="260" y1="212" x2="260" y2="184" stroke="#8A8F8B" stroke-width="1.5" marker-end="url(#ar)"/>
       </svg>
       <figcaption>The teal core runs with no AI. The dashed purple step is the optional LLM, which can be skipped.</figcaption>
@@ -135,12 +149,12 @@
 
     <div class="stage">
       <h3><span class="k">01</span> Author the rubric <span class="tag core">once, up front</span></h3>
-      <p>We write a rubric for each criterion — like the one in the brief, with fuller descriptions per box. Each of the six levels (5, 4, 3, 2, 1, 0) gets a written description of what that level looks like. This is our grading standard, made explicit. The richer and more distinct each level's wording, the sharper the matching that follows.</p>
+      <p>We write a rubric for each criterion — like the one in the brief, with fuller descriptions per box. Each of the five levels (5, 4, 3, 2, 1) gets a written description of what that level looks like. This is our grading standard, made explicit. The richer and more distinct each level's wording, the sharper the matching that follows.</p>
     </div>
 
     <div class="stage">
       <h3><span class="k">02</span> Score against the rubric <span class="tag core">no AI · runs always</span></h3>
-      <p>The input and each level description are turned into embeddings — vectors that capture meaning. We compute the cosine similarity between the input and all six levels; the level with the highest similarity wins, and its number becomes the score. This step is deterministic, cheap, instant at scale, and fully auditable — every score points back to the exact level it matched.</p>
+      <p>The input and each level description are turned into embeddings — vectors that capture meaning. We compute the cosine similarity between the input and all five levels; the level with the highest similarity wins, and its number becomes the score. This step is deterministic, cheap, instant at scale, and fully auditable — every score points back to the exact level it matched.</p>
     </div>
 
     <div class="stage">
@@ -149,8 +163,13 @@
     </div>
 
     <div class="stage">
-      <h3><span class="k">04</span> Output <span class="tag core">downstream-ready</span></h3>
-      <p>A numeric score per criterion, ready to feed the matching and weighted-average step further down the pipeline.</p>
+      <h3><span class="k">04</span> Employer Profile <span class="tag core">normalized weights</span></h3>
+      <p>The final weights (a combination of matched level and match strength) form the "Employer Profile" — a numeric signature of what the role requires across all competencies, totaling 100%.</p>
+    </div>
+
+    <div class="stage">
+      <h3><span class="k">05</span> Passport Integration & Match <span class="tag core">student fit score</span></h3>
+      <p>We intersect the Employer Profile with a <strong>Student Passport</strong> — the verified competency scores for an individual student. By applying the employer's weights to the student's passport scores, we compute a final Fit Score (0-100), ranking students by how well their specific strengths align with the job's actual demands.</p>
     </div>
   </section>
 
@@ -158,7 +177,7 @@
 
   <section class="section">
     <h2>How a single score is computed</h2>
-    <p>The input is compared against all six level descriptions for a criterion. Whichever it most resembles wins — that level's number is the score. It's the same judgment a human grader makes ("this reads like a 4 to me"), done by measuring similarity instead.</p>
+    <p>The input is compared against all five level descriptions for a criterion. Whichever it most resembles wins — that level's number is the score. It's the same judgment a human grader makes ("this reads like a 4 to me"), done by measuring similarity instead.</p>
     <figure>
       <div class="bars">
         <div class="bar"><span class="lab">Score 5</span><span class="track"><span class="fill" style="width:61%"></span></span><span class="val">61%</span></div>
@@ -166,7 +185,6 @@
         <div class="bar"><span class="lab">Score 3</span><span class="track"><span class="fill" style="width:74%"></span></span><span class="val">74%</span></div>
         <div class="bar"><span class="lab">Score 2</span><span class="track"><span class="fill" style="width:55%"></span></span><span class="val">55%</span></div>
         <div class="bar"><span class="lab">Score 1</span><span class="track"><span class="fill" style="width:40%"></span></span><span class="val">40%</span></div>
-        <div class="bar"><span class="lab">Score 0</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="val">22%</span></div>
       </div>
       <div class="result">Highest cosine similarity → <b>Score = 4</b></div>
       <figcaption>Similarity is measured against every level; the highest percentage is assigned.</figcaption>
@@ -192,7 +210,7 @@
 
     <div class="risk">
       <h3>Trade-off 2 — a level alone doesn't rank the metrics; magnitude does</h3>
-      <p>Each competency is assigned the level its job description matches best, but that level alone can't rank competencies against each other. One competency can match the top level (5) on a weak signal while another matches a lower level (4) on a far stronger one — and the second is the one the employer actually values. So the final weight combines both axes: how high the matched level is (the importance band) and how strongly the description engages that competency (the match strength), then normalizes across all six so they sit on one scale before feeding the weighted average.</p>
+      <p>Each competency is assigned the level its job description matches best, but that level alone can't rank competencies against each other. One competency can match the top level (5) on a weak signal while another matches a lower level (4) on a far stronger one — and the second is the one the employer actually values. So the final weight combines both axes: how high the matched level is (the importance band) and how strongly the description engages that competency (the match strength), then normalizes across all five so they sit on one scale before feeding the weighted average.</p>
     </div>
 
     <figure>
@@ -214,7 +232,6 @@
         <text class="glv" x="283" y="58" text-anchor="middle" fill="#5C6663">3</text>
         <text class="glv" x="333" y="58" text-anchor="middle" fill="#5C6663">2</text>
         <text class="glv" x="383" y="58" text-anchor="middle" fill="#5C6663">1</text>
-        <text class="glv" x="433" y="58" text-anchor="middle" fill="#5C6663">0</text>
 
         <text class="gh" x="148" y="92" text-anchor="end" dominant-baseline="central" fill="#232B28">Communicator</text>
         <rect x="160" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.204" stroke="#0E8A66" stroke-width="2.2"/>
@@ -222,13 +239,11 @@
         <rect x="260" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.144" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="310" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.108" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="360" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.072" stroke="#E6E5DE" stroke-width="0.5"/>
-        <rect x="410" y="70" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.048" stroke="#E6E5DE" stroke-width="0.5"/>
         <text class="gc" x="183" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">34</text>
         <text class="gc" x="233" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">30</text>
         <text class="gc" x="283" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">24</text>
         <text class="gc" x="333" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">18</text>
         <text class="gc" x="383" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">12</text>
-        <text class="gc" x="433" y="92" text-anchor="middle" dominant-baseline="central" fill="#2A332F">8</text>
         <rect x="500" y="81" width="77" height="22" rx="5" fill="#0E8A66"/>
         <text class="gv" x="571" y="92" text-anchor="end" dominant-baseline="central" fill="#fff">23</text>
 
@@ -238,13 +253,11 @@
         <rect x="260" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.312" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="310" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.18" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="360" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.12" stroke="#E6E5DE" stroke-width="0.5"/>
-        <rect x="410" y="122" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.06" stroke="#E6E5DE" stroke-width="0.5"/>
         <text class="gc" x="183" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">41</text>
         <text class="gc" x="233" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">58</text>
         <text class="gc" x="283" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">52</text>
         <text class="gc" x="333" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">30</text>
         <text class="gc" x="383" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">20</text>
-        <text class="gc" x="433" y="144" text-anchor="middle" dominant-baseline="central" fill="#2A332F">10</text>
         <rect x="500" y="133" width="107" height="22" rx="5" fill="#0E8A66"/>
         <text class="gv" x="601" y="144" text-anchor="end" dominant-baseline="central" fill="#fff">32</text>
 
@@ -254,13 +267,11 @@
         <rect x="260" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.36" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="310" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.21" stroke="#E6E5DE" stroke-width="0.5"/>
         <rect x="360" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.108" stroke="#E6E5DE" stroke-width="0.5"/>
-        <rect x="410" y="174" width="46" height="44" rx="4" fill="#1D9E75" fill-opacity="0.054" stroke="#E6E5DE" stroke-width="0.5"/>
         <text class="gc" x="183" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">55</text>
         <text class="gc" x="233" y="196" text-anchor="middle" dominant-baseline="central" fill="#fff">82</text>
         <text class="gc" x="283" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">60</text>
         <text class="gc" x="333" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">35</text>
         <text class="gc" x="383" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">18</text>
-        <text class="gc" x="433" y="196" text-anchor="middle" dominant-baseline="central" fill="#2A332F">9</text>
         <rect x="500" y="185" width="150" height="22" rx="5" fill="#0E8A66"/>
         <text class="gv" x="644" y="196" text-anchor="end" dominant-baseline="central" fill="#fff">45</text>
 
