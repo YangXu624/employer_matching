@@ -468,6 +468,9 @@ function hideAudit() {
 function renderAudit(data) {
   auditSection.style.display = "block";
   auditSummary.textContent = data.summary || "";
+  if (data.audit_status?.startsWith("fallback_") && data.warning) {
+    auditSummary.textContent = `${data.summary} ${data.warning}`;
+  }
   auditResults.innerHTML = "";
 
   const changesCount = data.changes_count ?? data.competencies.filter((c) => c.changed).length;
@@ -547,10 +550,14 @@ async function auditWeights() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "Audit failed");
     renderAudit(payload);
-    statusText.textContent =
-      payload.changes_count > 0
-        ? `AI audit complete (${payload.model}). ${payload.changes_count} correction(s) suggested.`
-        : `AI audit complete (${payload.model}). No corrections needed.`;
+    if (payload.audit_status?.startsWith("fallback_")) {
+      statusText.textContent = "AI audit unavailable; baseline weights were kept.";
+    } else {
+      statusText.textContent =
+        payload.changes_count > 0
+          ? `AI audit complete (${payload.model}). ${payload.changes_count} correction(s) suggested.`
+          : `AI audit complete (${payload.model}). No corrections needed.`;
+    }
   } catch (error) {
     statusText.textContent = error.message;
   } finally {
