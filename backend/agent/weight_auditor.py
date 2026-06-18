@@ -62,8 +62,7 @@ class CompetencyCorrection(BaseModel):
     reason: str = Field(description="Short justification for keeping or changing the weight.")
     evidence: str = Field(
         description=(
-            "For changes: a JD quote, negation, or 'implied: ...'. "
-            "For no change: use 'no change'."
+            "For changes: a JD quote, negation, or 'implied: ...'. For no change: use 'no change'."
         )
     )
 
@@ -72,8 +71,7 @@ class AuditOutput(BaseModel):
     corrections: list[CompetencyCorrection]
     summary: str = Field(
         description=(
-            "One sentence summarizing corrections made, or stating that no corrections "
-            "were needed."
+            "One sentence summarizing corrections made, or stating that no corrections were needed."
         )
     )
 
@@ -118,7 +116,9 @@ def _build_human_prompt(state: AuditState) -> str:
     for cid in COMPETENCY_ORDER:
         lines.append(f"- {cid} ({COMPETENCY_LABELS[cid]}): {COMPETENCY_GLOSSARY[cid]}")
 
-    lines.append("\nEmbedding baseline weights and signals (matched_level 1-5, peak_similarity 0-1):")
+    lines.append(
+        "\nEmbedding baseline weights and signals (matched_level 1-5, peak_similarity 0-1):"
+    )
     baseline = state.get("baseline", {})
     signals = state.get("signals", {})
     for cid in COMPETENCY_ORDER:
@@ -346,7 +346,9 @@ def audit_weights(
         "iterations": final_state.get("iterations", 0),
         "changes_count": changes_count,
         "baseline": clean_baseline,
-        "corrected": {cid: int(corrected.get(cid, clean_baseline[cid])) for cid in COMPETENCY_ORDER},
+        "corrected": {
+            cid: int(corrected.get(cid, clean_baseline[cid])) for cid in COMPETENCY_ORDER
+        },
         "competencies": competencies,
         "summary": summary,
     }

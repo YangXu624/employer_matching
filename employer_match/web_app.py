@@ -69,7 +69,9 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
         samples.append(
             {
                 "id": sample_id,
-                "title": sample_result.get("title") if sample_result else title_from_sample(path, body),
+                "title": sample_result.get("title")
+                if sample_result
+                else title_from_sample(path, body),
                 "body": body,
                 "path": display_path,
                 "result": sample_result,
@@ -127,32 +129,38 @@ def load_candidates() -> list[dict]:
     candidates_path = PROJECT_ROOT / "employer_match" / "data" / "candidates.csv"
     candidates = []
     if candidates_path.exists():
-        with open(candidates_path, newline='', encoding='utf-8') as f:
+        with open(candidates_path, newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                candidates.append({
-                    "name": row["name"],
-                    "scores": {
-                        "effective_communicator": float(row["effective_communicator"]),
-                        "global_citizen": float(row["global_citizen"]),
-                        "creative_innovator": float(row["creative_innovator"]),
-                        "critical_thinker": float(row["critical_thinker"]),
-                        "reflective_future_focused": float(row["reflective_future_focused"]),
-                        "career_ready": float(row["career_ready"])
+                candidates.append(
+                    {
+                        "name": row["name"],
+                        "scores": {
+                            "effective_communicator": float(row["effective_communicator"]),
+                            "global_citizen": float(row["global_citizen"]),
+                            "creative_innovator": float(row["creative_innovator"]),
+                            "critical_thinker": float(row["critical_thinker"]),
+                            "reflective_future_focused": float(row["reflective_future_focused"]),
+                            "career_ready": float(row["career_ready"]),
+                        },
                     }
-                })
+                )
     return candidates
+
 
 def match_candidates(weights: dict[str, float]) -> list[dict]:
     candidates = load_candidates()
     total_weight = sum(weights.values())
-    
+
     for cand in candidates:
         match_score = 0.0
         if total_weight > 0:
-            match_score = sum(weights.get(c, 0) * cand["scores"].get(c, 0) for c in COMPETENCY_ORDER) / total_weight
+            match_score = (
+                sum(weights.get(c, 0) * cand["scores"].get(c, 0) for c in COMPETENCY_ORDER)
+                / total_weight
+            )
         cand["match_score"] = round(match_score, 1)
-        
+
     # Sort descending by match_score
     candidates.sort(key=lambda x: x["match_score"], reverse=True)
     return candidates[:5]
