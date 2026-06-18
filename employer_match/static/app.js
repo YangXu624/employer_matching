@@ -1,5 +1,4 @@
-// If empty string, uses relative paths. Change to "https://your-ngrok-url.ngrok-free.app" if hosting frontend separately.
-const API_BASE_URL = "https://e1fb-69-122-192-234.ngrok-free.app";
+const API_BASE_URL = "";
 
 const state = {
   samples: [],
