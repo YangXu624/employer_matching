@@ -1,8 +1,16 @@
 const API_BASE_URL = (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
 
+function readHistory() {
+  try {
+    return JSON.parse(localStorage.getItem("employerMatchHistory") || "[]");
+  } catch {
+    return [];
+  }
+}
+
 const state = {
   samples: [],
-  history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
+  history: readHistory(),
   lastResult: null,
   currentWeights: {},
 };
@@ -48,6 +56,7 @@ function compactText(text, maxLength = 96) {
 }
 
 function renderCards(container, items, onClick, emptyText = "No saved checks yet.") {
+  if (!container) return;
   container.innerHTML = "";
   if (!items.length) {
     container.classList.add("empty-list");
@@ -59,7 +68,7 @@ function renderCards(container, items, onClick, emptyText = "No saved checks yet
     const button = document.createElement("button");
     button.type = "button";
     button.className = "item-card";
-    button.innerHTML = `<strong>${item.title}</strong><span>${compactText(item.body || item.summary || "")}</span>`;
+    button.innerHTML = `<strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(compactText(item.body || item.summary || ""))}</span>`;
     button.addEventListener("click", () => onClick(item));
     container.appendChild(button);
   });
@@ -128,6 +137,17 @@ function renderHistory() {
 }
 
 async function loadSamples() {
+  if (!sampleList) return;
+  if (!API_BASE_URL) {
+    sampleList.classList.add("empty-list");
+    sampleList.textContent = "Backend URL not configured in config.js.";
+    statusText.textContent = "Set EMPLOYER_MATCH_API_BASE_URL in config.js.";
+    return;
+  }
+
+  sampleList.classList.add("empty-list");
+  sampleList.textContent = "Loading samples...";
+
   try {
     const response = await fetch(apiUrl("/api/samples"), { headers: apiHeaders() });
     const payload = await response.json();
@@ -162,10 +182,10 @@ async function loadSamples() {
     );
   } catch (error) {
     console.error("Failed to load samples:", error);
-    if (sampleList) {
-      sampleList.classList.add("empty-list");
-      sampleList.textContent = error.message || "Failed to load samples.";
-    }
+    sampleList.classList.add("empty-list");
+    sampleList.textContent = error.message || "Failed to load samples.";
+    statusText.textContent =
+      "Could not load samples. Is the backend running on " + API_BASE_URL + "?";
   }
 }
 
@@ -573,5 +593,9 @@ function renderCandidates(matches) {
   candidatesSection.scrollIntoView({ behavior: "smooth" });
 }
 
-renderHistory();
-loadSamples();
+function initApp() {
+  renderHistory();
+  loadSamples();
+}
+
+initApp();
