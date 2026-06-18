@@ -12,8 +12,59 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
 from backend.api.storage import list_checks, save_check  # noqa: E402
 from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload  # noqa: E402
+from employer_match.rubric_store import COMPETENCY_ORDER  # noqa: E402
+
+COMPETENCY_LABELS = {
+    "effective_communicator": "Effective Communicator",
+    "global_citizen": "Global Citizen",
+    "creative_innovator": "Creative Innovator",
+    "critical_thinker": "Critical Thinker",
+    "reflective_future_focused": "Reflective Future-Focused",
+    "career_ready": "Career Ready",
+}
+
+
+def build_audit_fallback_response(
+    weights: dict,
+    status: str,
+    message: str,
+) -> dict:
+    baseline = {
+        competency_id: int(round(float(weights.get(competency_id, 0))))
+        for competency_id in COMPETENCY_ORDER
+    }
+    return {
+        "model": "unavailable",
+        "audit_status": status,
+        "warning": message,
+        "iterations": 0,
+        "changes_count": 0,
+        "baseline": baseline,
+        "corrected": baseline,
+        "competencies": [
+            {
+                "competency_id": competency_id,
+                "label": COMPETENCY_LABELS[competency_id],
+                "baseline": baseline[competency_id],
+                "corrected": baseline[competency_id],
+                "delta": 0,
+                "changed": False,
+                "reason": "AI audit unavailable; baseline weight kept.",
+                "evidence": "no change",
+            }
+            for competency_id in COMPETENCY_ORDER
+        ],
+        "summary": f"AI audit unavailable; baseline weights were kept. {message}",
+    }
 
 
 class EmployerMatchApiHandler(BaseHTTPRequestHandler):
@@ -58,6 +109,41 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        if path == "/api/audit":
+            payload = self.read_json()
+            weights = payload.get("weights", {})
+            try:
+                from backend.agent.llm import MissingApiKeyError
+                from backend.agent.weight_auditor import audit_weights
+
+                jd_text = str(payload.get("jd_text", ""))
+                signals = {
+                    str(c.get("competency_id")): {
+                        "matched_level": c.get("matched_level"),
+                        "peak_similarity": c.get("peak_similarity"),
+                    }
+                    for c in payload.get("competencies", [])
+                    if c.get("competency_id")
+                }
+                self.write_json(audit_weights(jd_text, weights, signals))
+            except MissingApiKeyError as exc:
+                self.write_json(
+                    build_audit_fallback_response(
+                        weights,
+                        "fallback_missing_api_key",
+                        str(exc),
+                    )
+                )
+            except Exception as exc:
+                self.write_json(
+                    build_audit_fallback_response(
+                        weights,
+                        "fallback_audit_error",
+                        str(exc),
+                    )
+                )
+            return
+
         if path == "/api/checks":
             payload = self.read_json()
             try:
@@ -98,9 +184,7 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header(
-            "Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning"
-        )
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning")
 
     def log_message(self, format: str, *args) -> None:
         return

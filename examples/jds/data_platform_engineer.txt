@@ -1,0 +1,33 @@
+Data Platform Engineer (Heads-Down, Backend)
+
+ABOUT THE ROLE
+
+This is a deep, heads-down engineering role. To be clear up front: you will NOT
+present to clients or stakeholders, there is no public speaking, and we do not
+expect you to write reports, blog posts, or polished documentation. Communication
+overhead is kept to an absolute minimum so you can focus on the systems. We are
+also not looking for "innovative disruptors" or big-picture creative ideation,
+this is about reliable, repeatable execution, not inventing new products.
+
+WHAT YOU WILL DO
+
+Build and maintain batch and streaming data pipelines that move billions of rows
+per day. You will diagnose flaky pipelines, root-cause production incidents, and
+reason carefully through ambiguous data-quality failures until you find the real
+cause. Expect to weigh trade-offs between cost, latency, and correctness on a
+daily basis.
+
+Because our engineering pods run in Sao Paulo, Berlin, and Bangalore, your commits
+and on-call handoffs have to line up with their working hours and public holidays,
+and you will adjust your schedule and review etiquette to fit each pod's norms.
+
+WHAT WE NEED
+
+Expert-level SQL and Python. Hands-on experience with Airflow, dbt, Kafka, and
+Spark. Comfortable owning infrastructure in AWS. You should be the kind of
+engineer who quietly keeps the platform running.
+
+WHAT WE ARE NOT
+
+Again: this is not a client-facing or evangelism role. No stakeholder management,
+no conference talks, no "thought leadership."

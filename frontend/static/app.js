@@ -2,7 +2,6 @@
 const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
   ? "" 
   : "https://e1fb-69-122-192-234.ngrok-free.app";
-
 const state = {
   samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
@@ -310,7 +309,7 @@ scoreButton.addEventListener("click", scoreCurrentJd);
 if (llmCheckButton) {
   llmCheckButton.addEventListener("click", async () => {
     llmCheckButton.disabled = true;
-    const originalText = llmCheckButton.textContent;
+    const originalText = "LLM Check";
     llmCheckButton.textContent = "Checking...";
     try {
       const response = await fetch(`${API_BASE_URL}/api/llm-score`, {

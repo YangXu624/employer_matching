@@ -2,7 +2,6 @@
 const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
   ? "" 
   : "https://e1fb-69-122-192-234.ngrok-free.app";
-
 const state = {
   samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),

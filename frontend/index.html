@@ -14,12 +14,15 @@
           <button id="newCheckButton" type="button">New</button>
         </div>
         <section>
-          <h2>Previous</h2>
-          <div id="historyList" class="stack-list empty-list">No saved checks yet.</div>
-        </section>
-        <section style="margin-top: 30px;">
           <h2>Samples</h2>
-          <div id="sampleList" class="stack-list">Loading samples...</div>
+          <div id="sampleList" class="stack-list empty-list">Loading samples...</div>
+        </section>
+        <section>
+          <div class="section-header">
+            <h2>Previous</h2>
+            <button id="clearHistoryButton" type="button" class="text-btn" hidden>Clear all</button>
+          </div>
+          <div id="historyList" class="stack-list empty-list">No saved checks yet.</div>
         </section>
       </aside>
 
@@ -58,6 +61,14 @@
               <button id="matchButton" type="button" style="display: none; width: 100%;">Match with Students</button>
             </div>
           </div>
+        </section>
+        <section id="auditSection" style="display: none; margin-top: 30px;">
+          <h2>AI Weight Audit</h2>
+          <p id="auditSummary" class="status-text"></p>
+          <div id="auditResults" class="stack-list"></div>
+          <button id="applyAuditButton" type="button" style="display: none; width: 100%; margin-top: 12px;">
+            Apply corrections
+          </button>
         </section>
         <section id="candidatesSection" style="display: none; margin-top: 30px;">
           <h2>Top Student Matches</h2>
