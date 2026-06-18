@@ -48,10 +48,12 @@
           <div id="breakdownList" class="breakdown-list"></div>
           <div class="budget-tracker" id="budgetTracker" style="display: none;">
             <p id="budgetText">Allocated: 0.0 / 100</p>
-            <div class="action-buttons">
+            <div class="result-actions">
+              <button id="llmCheckButton" type="button" class="secondary-btn">LLM Check</button>
               <button id="resetButton" type="button" class="secondary-btn">Reset</button>
-              <button id="saveButton" type="button">Save Scores</button>
+              <button id="saveButton" type="button">Save Profile</button>
             </div>
+
             <div style="margin-top: 12px;">
               <button id="matchButton" type="button" style="display: none; width: 100%;">Match with Students</button>
             </div>
@@ -64,6 +66,10 @@
         <section style="margin-top: 30px;">
           <h2>Holistic View</h2>
           <canvas id="spiderChart"></canvas>
+          <div id="comparisonList" class="comparison-list" style="display: none; margin-top: 20px;">
+            <h3>LLM vs Vector Comparison</h3>
+            <div id="comparisonItems" class="stack-list"></div>
+          </div>
         </section>
       </aside>
     </main>

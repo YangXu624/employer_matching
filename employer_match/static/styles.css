@@ -293,6 +293,12 @@ input[type=range]::-moz-range-thumb {
   justify-content: center;
 }
 
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
 .secondary-btn {
   background: white;
   color: var(--text);

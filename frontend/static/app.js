@@ -1,11 +1,15 @@
-const API_BASE_URL = (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
+// If empty string, uses relative paths. Change to "https://your-ngrok-url.ngrok-free.app" if hosting frontend separately.
+const API_BASE_URL = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" 
+  ? "" 
+  : "https://e1fb-69-122-192-234.ngrok-free.app";
 
 const state = {
+  samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
   lastResult: null,
+  llmResult: null,
   currentWeights: {},
 };
-
 const historyList = document.querySelector("#historyList");
 const sampleList = document.querySelector("#sampleList");
 const jobTitle = document.querySelector("#jobTitle");
@@ -18,15 +22,8 @@ const spiderChartCanvas = document.querySelector("#spiderChart");
 const matchButton = document.getElementById("matchButton");
 const candidatesSection = document.getElementById("candidatesSection");
 const candidatesList = document.getElementById("candidatesList");
+const llmCheckButton = document.getElementById("llmCheckButton");
 let chartInstance = null;
-
-function apiUrl(path) {
-  return `${API_BASE_URL}${path}`;
-}
-
-function apiHeaders(extra = {}) {
-  return { "ngrok-skip-browser-warning": "true", ...extra };
-}
 
 function compactText(text, maxLength = 96) {
   const value = text.replace(/\s+/g, " ").trim();
@@ -63,16 +60,17 @@ function renderHistory() {
 
 function renderResult(result) {
   state.lastResult = result;
+  state.llmResult = null;
   breakdownList.innerHTML = "";
   state.currentWeights = {};
 
-  // Integerize the original AI weights exactly once so they sum to 100.
+  // Integerize the original AI weights exactly once so they sum to 100
   if (!result.is_integerized) {
     let total = 0;
-    result.competencies.forEach((competency) => {
-      competency.ai_weight = Math.round(Number(competency.weight || 0));
-      competency.weight = competency.ai_weight;
-      total += competency.weight;
+    result.competencies.forEach(c => {
+      c.ai_weight = Math.round(Number(c.weight || 0));
+      c.weight = c.ai_weight;
+      total += c.weight;
     });
     if (total !== 100 && result.competencies.length > 0) {
       const diff = 100 - total;
@@ -106,14 +104,14 @@ function renderResult(result) {
     const slider = row.querySelector(`#slider-${id}`);
     const numInput = row.querySelector(`#num-${id}`);
 
-    const syncValue = (value) => {
-      let nextValue = parseInt(value, 10);
-      if (Number.isNaN(nextValue)) nextValue = 0;
-      handleSliderChange(id, nextValue);
+    const syncValue = (val) => {
+      let v = parseInt(val, 10);
+      if (isNaN(v)) v = 0;
+      handleSliderChange(id, v);
     };
 
-    slider.addEventListener("input", (event) => syncValue(event.target.value));
-    numInput.addEventListener("input", (event) => syncValue(event.target.value));
+    slider.addEventListener("input", (e) => syncValue(e.target.value));
+    numInput.addEventListener("input", (e) => syncValue(e.target.value));
   });
 
   updateDOM();
@@ -128,28 +126,31 @@ function handleSliderChange(changedId, newValue) {
 function updateDOM() {
   const labels = [];
   const dataPoints = [];
+  const llmDataPoints = [];
   let totalWeight = 0;
 
   const acronyms = {
-    effective_communicator: "EC",
-    global_citizen: "GC",
-    creative_innovator: "CI",
-    critical_thinker: "CT",
-    reflective_future_focused: "RFF",
-    career_ready: "CR",
+    "effective_communicator": "EC",
+    "global_citizen": "GC",
+    "creative_innovator": "CI",
+    "critical_thinker": "CT",
+    "reflective_future_focused": "RFF",
+    "career_ready": "CR"
   };
 
   state.lastResult.competencies.forEach((competency) => {
     const id = competency.competency_id;
     const weight = state.currentWeights[id];
     totalWeight += weight;
+    
+    // Keep the core result object synced so history saves reflect user edits
     competency.weight = weight;
-
+    
     const numInput = document.getElementById(`num-${id}`);
     if (numInput && parseInt(numInput.value, 10) !== weight) {
       numInput.value = weight;
     }
-
+    
     const slider = document.getElementById(`slider-${id}`);
     if (slider && parseInt(slider.value, 10) !== weight) {
       slider.value = weight;
@@ -157,6 +158,10 @@ function updateDOM() {
 
     labels.push(acronyms[id] || competency.label);
     dataPoints.push(weight);
+
+    if (state.llmResult && state.llmResult.weights) {
+      llmDataPoints.push(Math.round(state.llmResult.weights[id] || 0));
+    }
   });
 
   const budgetTracker = document.getElementById("budgetTracker");
@@ -166,65 +171,80 @@ function updateDOM() {
   if (budgetTracker) {
     budgetTracker.style.display = "block";
     const difference = 100 - totalWeight;
-
+    
     if (totalWeight === 100) {
-      budgetText.textContent = "Allocated: 100 / 100 (Perfect)";
+      budgetText.textContent = `Allocated: 100 / 100 (Perfect)`;
       budgetText.className = "success";
-      saveBtn.disabled = false;
+      if (saveBtn) saveBtn.disabled = false;
     } else if (totalWeight > 100) {
       budgetText.textContent = `Allocated: ${totalWeight} / 100 (Over by ${Math.abs(difference)})`;
       budgetText.className = "error";
-      saveBtn.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
       if (candidatesSection) candidatesSection.style.display = "none";
     } else {
       budgetText.textContent = `Allocated: ${totalWeight} / 100 (${difference} remaining)`;
       budgetText.className = "error";
-      saveBtn.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
       if (candidatesSection) candidatesSection.style.display = "none";
     }
   }
 
-  renderSpiderChart(labels, dataPoints);
+  const datasets = [{
+    label: 'Vector Similarity (Current)',
+    data: dataPoints,
+    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    borderColor: 'rgba(37, 99, 235, 1)',
+    pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+    pointBorderColor: '#fff',
+    pointHoverBackgroundColor: '#fff',
+    pointHoverBorderColor: 'rgba(37, 99, 235, 1)'
+  }];
+
+  if (state.llmResult) {
+    datasets.push({
+      label: 'LLM Score (Gemini)',
+      data: llmDataPoints,
+      backgroundColor: 'rgba(107, 92, 196, 0.2)',
+      borderColor: 'rgba(107, 92, 196, 1)',
+      borderDash: [5, 5],
+      pointBackgroundColor: 'rgba(107, 92, 196, 1)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgba(107, 92, 196, 1)'
+    });
+  }
+
+  renderSpiderChart(labels, datasets);
 }
 
-function renderSpiderChart(labels, data) {
+function renderSpiderChart(labels, datasets) {
   if (chartInstance) {
     chartInstance.destroy();
   }
   chartInstance = new Chart(spiderChartCanvas, {
-    type: "radar",
+    type: 'radar',
     data: {
-      labels,
-      datasets: [
-        {
-          label: "Competency Weight",
-          data,
-          backgroundColor: "rgba(37, 99, 235, 0.2)",
-          borderColor: "rgba(37, 99, 235, 1)",
-          pointBackgroundColor: "rgba(37, 99, 235, 1)",
-          pointBorderColor: "#fff",
-          pointHoverBackgroundColor: "#fff",
-          pointHoverBorderColor: "rgba(37, 99, 235, 1)",
-        },
-      ],
+      labels: labels,
+      datasets: datasets
     },
     options: {
       scales: {
         r: {
           beginAtZero: true,
           ticks: {
-            display: false,
-          },
-        },
+            display: false
+          }
+        }
       },
       plugins: {
         legend: {
-          display: false,
-        },
-      },
-    },
+          display: true,
+          position: 'bottom'
+        }
+      }
+    }
   });
 }
 
@@ -244,10 +264,11 @@ function saveHistory(result) {
 async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
+  resetComparison();
   try {
-    const response = await fetch(apiUrl("/api/score"), {
+    const response = await fetch(`${API_BASE_URL}/api/score`, {
       method: "POST",
-      headers: apiHeaders({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: jobTitle.value,
         jd_text: jobText.value,
@@ -277,6 +298,7 @@ newCheckButton.addEventListener("click", () => {
     chartInstance.destroy();
     chartInstance = null;
   }
+  resetComparison();
   const budgetTracker = document.getElementById("budgetTracker");
   if (budgetTracker) budgetTracker.style.display = "none";
   if (matchButton) matchButton.style.display = "none";
@@ -285,14 +307,77 @@ newCheckButton.addEventListener("click", () => {
 
 scoreButton.addEventListener("click", scoreCurrentJd);
 
+if (llmCheckButton) {
+  llmCheckButton.addEventListener("click", async () => {
+    llmCheckButton.disabled = true;
+    const originalText = llmCheckButton.textContent;
+    llmCheckButton.textContent = "Checking...";
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/llm-score`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: jobTitle.value,
+          jd_text: jobText.value,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "LLM scoring failed");
+      
+      state.llmResult = payload;
+      updateDOM();
+      renderComparison();
+      statusText.textContent = "LLM Check complete! Comparison added to chart.";
+    } catch (error) {
+      statusText.textContent = "LLM Error: " + error.message;
+    } finally {
+      llmCheckButton.disabled = false;
+      llmCheckButton.textContent = originalText;
+    }
+  });
+}
+
+function renderComparison() {
+  const container = document.getElementById("comparisonList");
+  const itemsContainer = document.getElementById("comparisonItems");
+  if (!container || !itemsContainer || !state.llmResult) return;
+
+  container.style.display = "block";
+  itemsContainer.innerHTML = "";
+  
+  state.lastResult.competencies.forEach(vecComp => {
+    const llmComp = state.llmResult.competencies.find(c => c.competency_id === vecComp.competency_id);
+    if (!llmComp) return;
+    
+    const vecWeight = Math.round(vecComp.weight);
+    const llmWeight = Math.round(state.llmResult.weights[llmComp.competency_id] || 0);
+
+    const li = document.createElement("div");
+    li.className = "item-card";
+    li.innerHTML = `
+      <strong>${vecComp.label}</strong>
+      <span>Vector: ${vecWeight} pts  &rarr;  LLM: ${llmWeight} pts</span>
+    `;
+    itemsContainer.appendChild(li);
+  });
+}
+
+function resetComparison() {
+  const container = document.getElementById("comparisonList");
+  if (container) {
+    container.style.display = "none";
+  }
+}
+
 const resetButton = document.getElementById("resetButton");
 const saveButton = document.getElementById("saveButton");
 
 if (resetButton) {
   resetButton.addEventListener("click", () => {
     if (state.lastResult) {
-      state.lastResult.competencies.forEach((competency) => {
-        competency.weight = competency.ai_weight;
+      // Restore the original AI weights
+      state.lastResult.competencies.forEach(c => {
+        c.weight = c.ai_weight;
       });
       renderResult(state.lastResult);
     }
@@ -314,13 +399,13 @@ if (matchButton) {
     matchButton.disabled = true;
     matchButton.textContent = "Matching...";
     try {
-      const response = await fetch(apiUrl("/api/match"), {
+      const response = await fetch(`${API_BASE_URL}/api/match`, {
         method: "POST",
-        headers: apiHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ weights: state.currentWeights }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weights: state.currentWeights })
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Matching failed");
+      if (!response.ok) throw new Error(payload.error);
       renderCandidates(payload.matches);
     } catch (error) {
       statusText.textContent = error.message;
@@ -334,34 +419,32 @@ if (matchButton) {
 function renderCandidates(matches) {
   candidatesSection.style.display = "block";
   candidatesList.innerHTML = "";
-  matches.forEach((match) => {
+  matches.forEach(m => {
     const div = document.createElement("div");
     div.className = "candidate-card";
     const tooltipHtml = `
       <div class="tooltip-grid">
-        <div>EC: ${match.scores.effective_communicator}</div>
-        <div>GC: ${match.scores.global_citizen}</div>
-        <div>CI: ${match.scores.creative_innovator}</div>
-        <div>CT: ${match.scores.critical_thinker}</div>
-        <div>RFF: ${match.scores.reflective_future_focused}</div>
-        <div>CR: ${match.scores.career_ready}</div>
+        <div>EC: ${m.scores.effective_communicator}</div>
+        <div>GC: ${m.scores.global_citizen}</div>
+        <div>CI: ${m.scores.creative_innovator}</div>
+        <div>CT: ${m.scores.critical_thinker}</div>
+        <div>RFF: ${m.scores.reflective_future_focused}</div>
+        <div>CR: ${m.scores.career_ready}</div>
       </div>
     `;
     div.innerHTML = `
-      <span>${match.name}</span>
-      <span class="candidate-score">${match.match_score.toFixed(1)} / 100</span>
+      <span>${m.name}</span>
+      <span class="candidate-score">${m.match_score.toFixed(1)} / 100</span>
       <div class="tooltip">${tooltipHtml}</div>
     `;
     candidatesList.appendChild(div);
   });
-  candidatesSection.scrollIntoView({ behavior: "smooth" });
+  candidatesSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function loadSamples() {
   try {
-    const response = await fetch(apiUrl("/api/samples"), {
-      headers: apiHeaders(),
-    });
+    const response = await fetch("/api/samples");
     const data = await response.json();
     renderCards(sampleList, data.samples || [], (item) => {
       jobTitle.value = item.title;

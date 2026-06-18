@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Callable
 
 from employer_match.pipeline import score_jd_text
-from employer_match.rubric_store import COMPETENCY_ORDER
+from employer_match.rubric_store import COMPETENCY_ORDER, load_rubric
+from employer_match.llm.scorer import score_jd_with_llm
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -191,6 +192,60 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
                 weights = payload.get("weights", {})
                 matches = match_candidates(weights)
                 self.write_json({"matches": matches})
+            except Exception as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if self.path == "/api/llm-score":
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self.write_json({"error": "Invalid JSON body"}, HTTPStatus.BAD_REQUEST)
+                return
+
+            jd_text = str(payload.get("jd_text", ""))
+            title = str(payload.get("title", "Untitled JD"))
+            try:
+                rubric = load_rubric()
+                result = score_jd_with_llm(jd_text, rubric)
+                
+                # Transform to matching payload format as score_text_payload
+                competency_payloads = []
+                for competency in result.competencies:
+                    weight = result.weights.get(competency.competency_id, 0.0)
+                    competency_payloads.append(
+                        {
+                            **asdict(competency),
+                            "label": COMPETENCY_LABELS.get(
+                                competency.competency_id, competency.competency_id.replace("_", " ").title()
+                            ),
+                            "weight": weight,
+                            "level_similarities": {
+                                str(level): similarity
+                                for level, similarity in competency.level_similarities.items()
+                            },
+                        }
+                    )
+                
+                overall_score = 0.0
+                if result.weights:
+                    overall_score = sum(
+                        result.weights.get(competency.competency_id, 0.0) * (competency.matched_level / 5)
+                        for competency in result.competencies
+                    )
+
+                self.write_json({
+                    "title": title.strip() or "Untitled JD",
+                    "overall_score": round(overall_score),
+                    "model": "gemini-2.5-flash",
+                    "weights": {
+                        competency_id: result.weights[competency_id] for competency_id in COMPETENCY_ORDER
+                    },
+                    "used_uniform_fallback": result.used_uniform_fallback,
+                    "fallback_reason": result.fallback_reason,
+                    "competencies": competency_payloads,
+                })
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
