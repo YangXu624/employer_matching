@@ -164,6 +164,55 @@ def load_candidates() -> list[dict]:
                 })
     return candidates
 
+
+def explain_candidate_match(candidate: dict, weights: dict[str, float], total_weight: float) -> dict:
+    if total_weight <= 0:
+        return {
+            "match_reason": "No weighting profile is available for explanation.",
+            "strengths": [],
+            "gaps": [],
+        }
+
+    strength_items = []
+    gap_items = []
+    for competency_id in COMPETENCY_ORDER:
+        weight = float(weights.get(competency_id, 0))
+        score = float(candidate["scores"].get(competency_id, 0))
+        if weight <= 0:
+            continue
+        label = COMPETENCY_LABELS.get(
+            competency_id, competency_id.replace("_", " ").title()
+        )
+        impact = round((weight * score) / total_weight, 1)
+        gap = round((weight * (100 - score)) / total_weight, 1)
+        strength_items.append(
+            {
+                "competency_id": competency_id,
+                "label": label,
+                "score": round(score, 1),
+                "impact": impact,
+            }
+        )
+        gap_items.append(
+            {
+                "competency_id": competency_id,
+                "label": label,
+                "score": round(score, 1),
+                "gap": gap,
+            }
+        )
+
+    strengths = sorted(strength_items, key=lambda item: item["impact"], reverse=True)[:2]
+    gaps = sorted(gap_items, key=lambda item: item["gap"], reverse=True)[:2]
+    strength_labels = ", ".join(item["label"] for item in strengths)
+    gap_labels = ", ".join(item["label"] for item in gaps)
+    return {
+        "match_reason": f"Strongest alignment: {strength_labels}. Watch gaps: {gap_labels}.",
+        "strengths": strengths,
+        "gaps": gaps,
+    }
+
+
 def match_candidates(weights: dict[str, float]) -> list[dict]:
     candidates = load_candidates()
     total_weight = sum(weights.values())
@@ -173,6 +222,7 @@ def match_candidates(weights: dict[str, float]) -> list[dict]:
         if total_weight > 0:
             match_score = sum(weights.get(c, 0) * cand["scores"].get(c, 0) for c in COMPETENCY_ORDER) / total_weight
         cand["match_score"] = round(match_score, 1)
+        cand.update(explain_candidate_match(cand, weights, total_weight))
         
     # Sort descending by match_score
     candidates.sort(key=lambda x: x["match_score"], reverse=True)

@@ -475,6 +475,22 @@ if (matchButton) {
   });
 }
 
+function renderMatchExplanation(match) {
+  const strengths = (match.strengths || [])
+    .map((item) => `${item.label} (${item.score.toFixed(1)})`)
+    .join(", ");
+  const gaps = (match.gaps || [])
+    .map((item) => `${item.label} (${item.score.toFixed(1)})`)
+    .join(", ");
+  return `
+    <p class="match-reason">${match.match_reason || ""}</p>
+    <div class="match-explanation">
+      <span><strong>Strongest alignment</strong>${strengths || "No weighted strengths"}</span>
+      <span><strong>Watch gaps</strong>${gaps || "No weighted gaps"}</span>
+    </div>
+  `;
+}
+
 function renderCandidates(matches) {
   candidatesSection.style.display = "block";
   candidatesList.innerHTML = "";
@@ -492,8 +508,11 @@ function renderCandidates(matches) {
       </div>
     `;
     div.innerHTML = `
-      <span>${match.name}</span>
-      <span class="candidate-score">${match.match_score.toFixed(1)} / 100</span>
+      <div class="candidate-main">
+        <span>${match.name}</span>
+        <span class="candidate-score">${match.match_score.toFixed(1)} / 100</span>
+      </div>
+      ${renderMatchExplanation(match)}
       <div class="tooltip">${tooltipHtml}</div>
     `;
     candidatesList.appendChild(div);

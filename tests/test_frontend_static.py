@@ -62,3 +62,13 @@ def test_frontend_apps_support_deleting_and_clearing_saved_checks():
         assert "clearHistory" in app_js
         assert "delete-history-btn" in app_js
         assert "localStorage.removeItem(\"employerMatchHistory\")" in app_js
+
+
+def test_frontend_apps_render_match_explanations():
+    for path in ["frontend/static/app.js", "employer_match/static/app.js"]:
+        app_js = Path(path).read_text(encoding="utf-8")
+
+        assert "renderMatchExplanation" in app_js
+        assert "Strongest alignment" in app_js
+        assert "Watch gaps" in app_js
+        assert "match.match_reason" in app_js

@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from employer_match.scorer import CompetencyScore, ScoreResult
-from employer_match.web_app import load_sample_jds, score_text_payload
+from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload
 from employer_match.rubric_store import COMPETENCY_ORDER
 
 
@@ -84,3 +84,24 @@ def test_build_audit_fallback_response_keeps_baseline_weights():
     assert "baseline weights were kept" in payload["summary"]
     assert [item["competency_id"] for item in payload["competencies"]] == COMPETENCY_ORDER
     assert all(item["changed"] is False for item in payload["competencies"])
+
+
+def test_match_candidates_includes_user_facing_explanations():
+    weights = {
+        "effective_communicator": 30,
+        "global_citizen": 5,
+        "creative_innovator": 5,
+        "critical_thinker": 30,
+        "reflective_future_focused": 10,
+        "career_ready": 20,
+    }
+
+    matches = match_candidates(weights)
+
+    assert matches
+    first = matches[0]
+    assert first["match_reason"]
+    assert len(first["strengths"]) == 2
+    assert len(first["gaps"]) == 2
+    assert {"competency_id", "label", "score", "impact"} <= set(first["strengths"][0])
+    assert {"competency_id", "label", "score", "gap"} <= set(first["gaps"][0])
