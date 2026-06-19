@@ -100,12 +100,17 @@ section + section {
   margin-bottom: 10px;
 }
 
+.section-header h2 {
+  margin: 0;
+}
+
 .text-btn {
   border: none;
   background: transparent;
   color: var(--muted);
   padding: 0;
   font-size: 12px;
+  cursor: pointer;
 }
 
 .text-btn:hover {
@@ -134,6 +139,7 @@ section + section {
   border-radius: 6px;
   font-size: 18px;
   line-height: 1;
+  cursor: pointer;
 }
 
 .delete-history-btn:hover {
@@ -255,11 +261,9 @@ input[type=range] {
   margin: 8px 0;
   border: none;
 }
-
 input[type=range]:focus {
   outline: none;
 }
-
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 10px;
@@ -267,7 +271,6 @@ input[type=range]::-webkit-slider-runnable-track {
   background: var(--bar);
   border-radius: 999px;
 }
-
 input[type=range]::-webkit-slider-thumb {
   height: 16px;
   width: 16px;
@@ -277,7 +280,6 @@ input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   margin-top: -3px;
 }
-
 input[type=range]::-moz-range-track {
   width: 100%;
   height: 10px;
@@ -285,7 +287,6 @@ input[type=range]::-moz-range-track {
   background: var(--bar);
   border-radius: 999px;
 }
-
 input[type=range]::-moz-range-thumb {
   height: 16px;
   width: 16px;
@@ -348,6 +349,12 @@ input[type=range]::-moz-range-thumb {
   justify-content: center;
 }
 
+.result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
 .secondary-btn {
   background: white;
   color: var(--text);
@@ -373,11 +380,9 @@ button:disabled {
   gap: 8px;
   cursor: help;
 }
-
 .candidate-card:hover {
   background: #f8fafc;
 }
-
 .candidate-score {
   font-weight: 600;
   color: var(--accent-dark);
@@ -424,12 +429,11 @@ button:disabled {
   font-size: 12px;
   white-space: nowrap;
   z-index: 10;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   margin-bottom: 8px;
 }
-
 .tooltip::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 100%;
   left: 50%;
@@ -438,11 +442,9 @@ button:disabled {
   border-style: solid;
   border-color: #1f2933 transparent transparent transparent;
 }
-
 .candidate-card:hover .tooltip {
   display: block;
 }
-
 .tooltip-grid {
   display: grid;
   grid-template-columns: auto auto;
@@ -459,6 +461,11 @@ button:disabled {
 .audit-card.unchanged {
   background: #f8fafc;
   opacity: 0.85;
+}
+
+.audit-no-change {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .audit-head {
@@ -478,8 +485,30 @@ button:disabled {
   white-space: nowrap;
 }
 
+.audit-base {
+  color: var(--muted);
+}
+
+.audit-arrow {
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.delta-up {
+  color: var(--good);
+}
+
+.delta-down {
+  color: #dc2626;
+}
+
+.delta-same {
+  color: var(--muted);
+}
+
 .audit-reason {
   font-size: 12.5px;
+  color: var(--text);
   margin-top: 5px;
   line-height: 1.4;
 }

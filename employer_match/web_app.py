@@ -45,6 +45,15 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
             if directory.exists():
                 paths.extend(sorted(directory.glob("*.txt")))
 
+    results_path = PROJECT_ROOT / "employer_match" / "data" / "sample_results.json"
+    precalculated_results = {}
+    if results_path.exists():
+        try:
+            with open(results_path, "r", encoding="utf-8") as f:
+                precalculated_results = json.load(f)
+        except Exception as e:
+            print(f"Error loading sample results: {e}")
+
     samples = []
     seen_ids = set()
     for path in paths:
@@ -56,12 +65,16 @@ def load_sample_jds(sample_dir: Path | None = None) -> list[dict]:
             display_path = str(path.relative_to(PROJECT_ROOT))
         except ValueError:
             display_path = str(path)
+        sample_result = precalculated_results.get(sample_id)
         samples.append(
             {
                 "id": sample_id,
-                "title": title_from_sample(path, body),
+                "title": sample_result.get("title")
+                if sample_result
+                else title_from_sample(path, body),
                 "body": body,
                 "path": display_path,
+                "result": sample_result,
             }
         )
         seen_ids.add(sample_id)
@@ -237,6 +250,16 @@ def match_candidates(weights: dict[str, float]) -> list[dict]:
 class EmployerMatchHandler(BaseHTTPRequestHandler):
     server_version = "EmployerMatchMVP/0.1"
 
+    def end_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning")
+        super().end_headers()
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(HTTPStatus.OK)
+        self.end_headers()
+
     def do_GET(self) -> None:
         if self.path == "/" or self.path == "/index.html":
             self.serve_static("index.html")
@@ -267,6 +290,68 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
                 payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
                 weights = payload.get("weights", {})
                 self.write_json(build_audit_fallback_response(weights))
+            except Exception as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if self.path == "/api/llm-score":
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                self.write_json({"error": "Invalid JSON body"}, HTTPStatus.BAD_REQUEST)
+                return
+
+            jd_text = str(payload.get("jd_text", ""))
+            title = str(payload.get("title", "Untitled JD"))
+            try:
+                from employer_match.llm.scorer import score_jd_with_llm
+                from employer_match.rubric_store import load_rubric
+
+                rubric = load_rubric()
+                result = score_jd_with_llm(jd_text, rubric)
+
+                # Transform to matching payload format as score_text_payload
+                competency_payloads = []
+                for competency in result.competencies:
+                    weight = result.weights.get(competency.competency_id, 0.0)
+                    competency_payloads.append(
+                        {
+                            **asdict(competency),
+                            "label": COMPETENCY_LABELS.get(
+                                competency.competency_id,
+                                competency.competency_id.replace("_", " ").title(),
+                            ),
+                            "weight": weight,
+                            "level_similarities": {
+                                str(level): similarity
+                                for level, similarity in competency.level_similarities.items()
+                            },
+                        }
+                    )
+
+                overall_score = 0.0
+                if result.weights:
+                    overall_score = sum(
+                        result.weights.get(competency.competency_id, 0.0)
+                        * (competency.matched_level / 5)
+                        for competency in result.competencies
+                    )
+
+                self.write_json(
+                    {
+                        "title": title.strip() or "Untitled JD",
+                        "overall_score": round(overall_score),
+                        "model": "gemini-2.5-flash",
+                        "weights": {
+                            competency_id: result.weights[competency_id]
+                            for competency_id in COMPETENCY_ORDER
+                        },
+                        "used_uniform_fallback": result.used_uniform_fallback,
+                        "fallback_reason": result.fallback_reason,
+                        "competencies": competency_payloads,
+                    }
+                )
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
@@ -311,7 +396,7 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, format: str, *args) -> None:
-        return
+        print(f"[{self.date_time_string()}] {format % args}")
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8765) -> None:

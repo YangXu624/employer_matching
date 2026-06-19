@@ -1,11 +1,14 @@
+const API_BASE_URL = "";
 const state = {
+  samples: [],
   history: JSON.parse(localStorage.getItem("employerMatchHistory") || "[]"),
   lastResult: null,
+  llmResult: null,
   currentWeights: {},
 };
-
 const historyList = document.querySelector("#historyList");
 const clearHistoryButton = document.querySelector("#clearHistoryButton");
+const sampleList = document.querySelector("#sampleList");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
 const statusText = document.querySelector("#statusText");
@@ -21,6 +24,7 @@ const auditSection = document.getElementById("auditSection");
 const auditSummary = document.getElementById("auditSummary");
 const auditResults = document.getElementById("auditResults");
 const applyAuditButton = document.getElementById("applyAuditButton");
+const llmCheckButton = document.getElementById("llmCheckButton");
 let chartInstance = null;
 
 function compactText(text, maxLength = 96) {
@@ -112,6 +116,7 @@ function clearHistory() {
 
 function renderResult(result) {
   state.lastResult = result;
+  state.llmResult = null;
   breakdownList.innerHTML = "";
   state.currentWeights = {};
 
@@ -178,6 +183,7 @@ function handleSliderChange(changedId, newValue) {
 function updateDOM() {
   const labels = [];
   const dataPoints = [];
+  const llmDataPoints = [];
   let totalWeight = 0;
 
   const acronyms = {
@@ -209,6 +215,10 @@ function updateDOM() {
 
     labels.push(acronyms[id] || competency.label);
     dataPoints.push(weight);
+
+    if (state.llmResult && state.llmResult.weights) {
+      llmDataPoints.push(Math.round(state.llmResult.weights[id] || 0));
+    }
   });
 
   const budgetTracker = document.getElementById("budgetTracker");
@@ -222,26 +232,51 @@ function updateDOM() {
     if (totalWeight === 100) {
       budgetText.textContent = `Allocated: 100 / 100 (Perfect)`;
       budgetText.className = "success";
-      saveBtn.disabled = false;
+      if (saveBtn) saveBtn.disabled = false;
     } else if (totalWeight > 100) {
       budgetText.textContent = `Allocated: ${totalWeight} / 100 (Over by ${Math.abs(difference)})`;
       budgetText.className = "error";
-      saveBtn.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
       if (candidatesSection) candidatesSection.style.display = "none";
     } else {
       budgetText.textContent = `Allocated: ${totalWeight} / 100 (${difference} remaining)`;
       budgetText.className = "error";
-      saveBtn.disabled = true;
+      if (saveBtn) saveBtn.disabled = true;
       if (matchButton) matchButton.style.display = "none";
       if (candidatesSection) candidatesSection.style.display = "none";
     }
   }
 
-  renderSpiderChart(labels, dataPoints);
+  const datasets = [{
+    label: 'Vector Similarity (Current)',
+    data: dataPoints,
+    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    borderColor: 'rgba(37, 99, 235, 1)',
+    pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+    pointBorderColor: '#fff',
+    pointHoverBackgroundColor: '#fff',
+    pointHoverBorderColor: 'rgba(37, 99, 235, 1)'
+  }];
+
+  if (state.llmResult) {
+    datasets.push({
+      label: 'LLM Score (Gemini)',
+      data: llmDataPoints,
+      backgroundColor: 'rgba(107, 92, 196, 0.2)',
+      borderColor: 'rgba(107, 92, 196, 1)',
+      borderDash: [5, 5],
+      pointBackgroundColor: 'rgba(107, 92, 196, 1)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgba(107, 92, 196, 1)'
+    });
+  }
+
+  renderSpiderChart(labels, datasets);
 }
 
-function renderSpiderChart(labels, data) {
+function renderSpiderChart(labels, datasets) {
   if (chartInstance) {
     chartInstance.destroy();
   }
@@ -249,16 +284,7 @@ function renderSpiderChart(labels, data) {
     type: 'radar',
     data: {
       labels: labels,
-      datasets: [{
-        label: 'Competency Weight',
-        data: data,
-        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-        borderColor: 'rgba(37, 99, 235, 1)',
-        pointBackgroundColor: 'rgba(37, 99, 235, 1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(37, 99, 235, 1)'
-      }]
+      datasets: datasets
     },
     options: {
       scales: {
@@ -271,7 +297,8 @@ function renderSpiderChart(labels, data) {
       },
       plugins: {
         legend: {
-          display: false
+          display: true,
+          position: 'bottom'
         }
       }
     }
@@ -299,6 +326,7 @@ async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
   resetAudit();
+  resetComparison();
   try {
     const response = await fetch("/api/score", {
       method: "POST",
@@ -332,6 +360,7 @@ newCheckButton.addEventListener("click", () => {
     chartInstance.destroy();
     chartInstance = null;
   }
+  resetComparison();
   const budgetTracker = document.getElementById("budgetTracker");
   if (budgetTracker) budgetTracker.style.display = "none";
   if (matchButton) matchButton.style.display = "none";
@@ -340,6 +369,68 @@ newCheckButton.addEventListener("click", () => {
 });
 
 scoreButton.addEventListener("click", scoreCurrentJd);
+
+if (llmCheckButton) {
+  llmCheckButton.addEventListener("click", async () => {
+    llmCheckButton.disabled = true;
+    const originalText = "LLM Check";
+    llmCheckButton.textContent = "Checking...";
+    try {
+      const response = await fetch("/api/llm-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: jobTitle.value,
+          jd_text: jobText.value,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "LLM scoring failed");
+      
+      state.llmResult = payload;
+      updateDOM();
+      renderComparison();
+      statusText.textContent = "LLM Check complete! Comparison added to chart.";
+    } catch (error) {
+      statusText.textContent = "LLM Error: " + error.message;
+    } finally {
+      llmCheckButton.disabled = false;
+      llmCheckButton.textContent = originalText;
+    }
+  });
+}
+
+function renderComparison() {
+  const container = document.getElementById("comparisonList");
+  const itemsContainer = document.getElementById("comparisonItems");
+  if (!container || !itemsContainer || !state.llmResult) return;
+
+  container.style.display = "block";
+  itemsContainer.innerHTML = "";
+  
+  state.lastResult.competencies.forEach(vecComp => {
+    const llmComp = state.llmResult.competencies.find(c => c.competency_id === vecComp.competency_id);
+    if (!llmComp) return;
+    
+    const vecWeight = Math.round(vecComp.weight);
+    const llmWeight = Math.round(state.llmResult.weights[llmComp.competency_id] || 0);
+
+    const li = document.createElement("div");
+    li.className = "item-card";
+    li.innerHTML = `
+      <strong>${vecComp.label}</strong>
+      <span>Vector: ${vecWeight} pts  &rarr;  LLM: ${llmWeight} pts</span>
+    `;
+    itemsContainer.appendChild(li);
+  });
+}
+
+function resetComparison() {
+  const container = document.getElementById("comparisonList");
+  if (container) {
+    container.style.display = "none";
+  }
+}
 
 const resetButton = document.getElementById("resetButton");
 const saveButton = document.getElementById("saveButton");
@@ -511,4 +602,31 @@ function renderCandidates(matches) {
   candidatesSection.scrollIntoView({ behavior: 'smooth' });
 }
 
+async function loadSamples() {
+  try {
+    const response = await fetch("/api/samples");
+    const data = await response.json();
+    renderCards(sampleList, data.samples || [], (item) => {
+      jobTitle.value = item.title;
+      jobText.value = item.body;
+      if (item.result) {
+        statusText.textContent = "Loaded pre-calculated result for sample.";
+        renderResult(item.result);
+      } else {
+        statusText.textContent = "Sample loaded. Click 'Score JD' to analyze.";
+        // Clear previous results if any
+        breakdownList.innerHTML = "";
+        if (chartInstance) {
+          chartInstance.destroy();
+          chartInstance = null;
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load samples:", error);
+    if (sampleList) sampleList.textContent = "Failed to load samples.";
+  }
+}
+
 renderHistory();
+loadSamples();

@@ -1,0 +1,650 @@
+{
+  "fbi": {
+    "title": "FBI Police Officer",
+    "overall_score": 52,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 20.745187485025653,
+      "global_citizen": 18.895978523465374,
+      "creative_innovator": 12.418775266669774,
+      "critical_thinker": 13.412114453991434,
+      "reflective_future_focused": 20.25271532881807,
+      "career_ready": 14.275228942029699
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.6162885467832361,
+          "2": 0.5868953274714545,
+          "3": 0.6540675665728077,
+          "4": 0.5721378063878364,
+          "5": 0.6098412188937259
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6540675665728077,
+        "raw_weight": 1.9622026997184232,
+        "label": "Effective Communicator",
+        "weight": 20.745187485025653
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.5896964915696999,
+          "2": 0.5918482343984891,
+          "3": 0.595764521278789,
+          "4": 0.5709730469373461,
+          "5": 0.5611508115319599
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.595764521278789,
+        "raw_weight": 1.787293563836367,
+        "label": "Global Citizen",
+        "weight": 18.895978523465374
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5787987608582628,
+          "2": 0.587320658659877,
+          "3": 0.5615520300643493,
+          "4": 0.5585320400993665,
+          "5": 0.5380759504996279
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.587320658659877,
+        "raw_weight": 1.174641317319754,
+        "label": "Creative Innovator",
+        "weight": 12.418775266669774
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.6035674057521974,
+          "2": 0.6342986104500354,
+          "3": 0.6123206862611428,
+          "4": 0.5905053426946953,
+          "5": 0.5746302374704622
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6342986104500354,
+        "raw_weight": 1.2685972209000709,
+        "label": "Critical Thinker",
+        "weight": 13.412114453991434
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.6140404928394583,
+          "2": 0.5820448315991381,
+          "3": 0.6385405888075759,
+          "4": 0.610499215870252,
+          "5": 0.5984466429421488
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6385405888075759,
+        "raw_weight": 1.9156217664227277,
+        "label": "Reflective Future-Focused",
+        "weight": 20.25271532881807
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.6500665261799363,
+          "2": 0.6751178505705997,
+          "3": 0.6286841890110989,
+          "4": 0.6215473488420109,
+          "5": 0.6402521316234185
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6751178505705997,
+        "raw_weight": 1.3502357011411994,
+        "label": "Career Ready",
+        "weight": 14.275228942029699
+      }
+    ]
+  },
+  "frontend_developer": {
+    "title": "Senior Frontend Developer",
+    "overall_score": 79,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 24.825846021274156,
+      "global_citizen": 9.552511414458104,
+      "creative_innovator": 9.18010430823348,
+      "critical_thinker": 14.62909205817905,
+      "reflective_future_focused": 23.762514527708507,
+      "career_ready": 18.0499316701467
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.6423333936989296,
+          "2": 0.6597358522220041,
+          "3": 0.6272924716708757,
+          "4": 0.6572662673844416,
+          "5": 0.6757610701505603
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6757610701505603,
+        "raw_weight": 3.3788053507528018,
+        "label": "Effective Communicator",
+        "weight": 24.825846021274156
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.5914511347293091,
+          "2": 0.6500498845565974,
+          "3": 0.5826307819777177,
+          "4": 0.5782092644312393,
+          "5": 0.5734556436918805
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6500498845565974,
+        "raw_weight": 1.3000997691131948,
+        "label": "Global Citizen",
+        "weight": 9.552511414458104
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5751852748283459,
+          "2": 0.6247075231705674,
+          "3": 0.5846452095623937,
+          "4": 0.592472963358911,
+          "5": 0.5732969833293657
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6247075231705674,
+        "raw_weight": 1.2494150463411349,
+        "label": "Creative Innovator",
+        "weight": 9.18010430823348
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.609428247101269,
+          "2": 0.6284343773490596,
+          "3": 0.6636746569210348,
+          "4": 0.5942959247017676,
+          "5": 0.5861214499499089
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6636746569210348,
+        "raw_weight": 1.9910239707631043,
+        "label": "Critical Thinker",
+        "weight": 14.62909205817905
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.6230637376884318,
+          "2": 0.644329927530308,
+          "3": 0.6252265912737608,
+          "4": 0.6211977765463116,
+          "5": 0.6468171208728213
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6468171208728213,
+        "raw_weight": 3.2340856043641066,
+        "label": "Reflective Future-Focused",
+        "weight": 23.762514527708507
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.5570845310795337,
+          "2": 0.5929422465372802,
+          "3": 0.544241812438863,
+          "4": 0.6141503259904215,
+          "5": 0.5767857338081998
+        },
+        "matched_level": 4,
+        "peak_similarity": 0.6141503259904215,
+        "raw_weight": 2.456601303961686,
+        "label": "Career Ready",
+        "weight": 18.0499316701467
+      }
+    ]
+  },
+  "intl_coordinator": {
+    "title": "International Operations Coordinator",
+    "overall_score": 85,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 23.95877541212423,
+      "global_citizen": 26.398775992313166,
+      "creative_innovator": 9.16551380889146,
+      "critical_thinker": 9.627183346413076,
+      "reflective_future_focused": 26.09712036298168,
+      "career_ready": 4.752631077276392
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.5805164438556619,
+          "2": 0.5707347799603653,
+          "3": 0.5995794333604747,
+          "4": 0.5937467372259713,
+          "5": 0.6331058329395092
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6331058329395092,
+        "raw_weight": 3.1655291646975456,
+        "label": "Effective Communicator",
+        "weight": 23.95877541212423
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.6285076121438044,
+          "2": 0.6518961002909376,
+          "3": 0.6409875251381719,
+          "4": 0.6821233553383941,
+          "5": 0.6975823586851311
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6975823586851311,
+        "raw_weight": 3.4879117934256554,
+        "label": "Global Citizen",
+        "weight": 26.398775992313166
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5563041289353606,
+          "2": 0.6054921583513352,
+          "3": 0.5776135373614496,
+          "4": 0.556741546895427,
+          "5": 0.5653269056552057
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6054921583513352,
+        "raw_weight": 1.2109843167026704,
+        "label": "Creative Innovator",
+        "weight": 9.16551380889146
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.5713528921282143,
+          "2": 0.6359909705889915,
+          "3": 0.6079745073014404,
+          "4": 0.5974357746861093,
+          "5": 0.6135716235910744
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6359909705889915,
+        "raw_weight": 1.271981941177983,
+        "label": "Critical Thinker",
+        "weight": 9.627183346413076
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.5932406452393167,
+          "2": 0.6326559015233693,
+          "3": 0.6390563529322018,
+          "4": 0.6025594482224096,
+          "5": 0.6896111692072182
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6896111692072182,
+        "raw_weight": 3.448055846036091,
+        "label": "Reflective Future-Focused",
+        "weight": 26.09712036298168
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.627936613010408,
+          "2": 0.6274964731442567,
+          "3": 0.6173663864904992,
+          "4": 0.6232439699591826,
+          "5": 0.6249444009047251
+        },
+        "matched_level": 1,
+        "peak_similarity": 0.627936613010408,
+        "raw_weight": 0.627936613010408,
+        "label": "Career Ready",
+        "weight": 4.752631077276392
+      }
+    ]
+  },
+  "junior_data_analyst": {
+    "title": "Junior Data Analyst",
+    "overall_score": 58,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 6.624983235769108,
+      "global_citizen": 12.531075883749645,
+      "creative_innovator": 12.662769487116321,
+      "critical_thinker": 21.198346199802266,
+      "reflective_future_focused": 19.925262967441892,
+      "career_ready": 27.057562226120762
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.6222959257489223,
+          "2": 0.5825393140206031,
+          "3": 0.6039462688136001,
+          "4": 0.5646745431470166,
+          "5": 0.5749610478590604
+        },
+        "matched_level": 1,
+        "peak_similarity": 0.6222959257489223,
+        "raw_weight": 0.6222959257489223,
+        "label": "Effective Communicator",
+        "weight": 6.624983235769108
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.5753186432667129,
+          "2": 0.5885326188906719,
+          "3": 0.5623647900774592,
+          "4": 0.5810026590544654,
+          "5": 0.5651837021376782
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.5885326188906719,
+        "raw_weight": 1.1770652377813438,
+        "label": "Global Citizen",
+        "weight": 12.531075883749645
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5425965632125759,
+          "2": 0.5947177207925005,
+          "3": 0.5846147853991323,
+          "4": 0.548042677634031,
+          "5": 0.5442487273801425
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.5947177207925005,
+        "raw_weight": 1.189435441585001,
+        "label": "Creative Innovator",
+        "weight": 12.662769487116321
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.6124582829646426,
+          "2": 0.6475072235231261,
+          "3": 0.6637322190506975,
+          "4": 0.633072515420726,
+          "5": 0.6130303933226204
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6637322190506975,
+        "raw_weight": 1.9911966571520923,
+        "label": "Critical Thinker",
+        "weight": 21.198346199802266
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.6086827380402134,
+          "2": 0.5932792606309056,
+          "3": 0.6238712624040574,
+          "4": 0.59680514214554,
+          "5": 0.5963645029102517
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6238712624040574,
+        "raw_weight": 1.8716137872121723,
+        "label": "Reflective Future-Focused",
+        "weight": 19.925262967441892
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.6071064603004038,
+          "2": 0.6293724939774821,
+          "3": 0.5917411369028663,
+          "4": 0.6353906921267158,
+          "5": 0.5986634616251765
+        },
+        "matched_level": 4,
+        "peak_similarity": 0.6353906921267158,
+        "raw_weight": 2.5415627685068634,
+        "label": "Career Ready",
+        "weight": 27.057562226120762
+      }
+    ]
+  },
+  "moomoo": {
+    "title": "Moomoo Financial CX Associate",
+    "overall_score": 74,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 29.448297716002013,
+      "global_citizen": 23.506305240629704,
+      "creative_innovator": 11.89126617396698,
+      "critical_thinker": 22.74029689489827,
+      "reflective_future_focused": 6.404013628392366,
+      "career_ready": 6.009820346110671
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.5981221143486569,
+          "2": 0.5795209542262074,
+          "3": 0.588649727892901,
+          "4": 0.6141053321869739,
+          "5": 0.6242001278688677
+        },
+        "matched_level": 5,
+        "peak_similarity": 0.6242001278688677,
+        "raw_weight": 3.1210006393443384,
+        "label": "Effective Communicator",
+        "weight": 29.448297716002013
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.5884960702035538,
+          "2": 0.6173055640019063,
+          "3": 0.5901221357265833,
+          "4": 0.6228135357104478,
+          "5": 0.586766083349003
+        },
+        "matched_level": 4,
+        "peak_similarity": 0.6228135357104478,
+        "raw_weight": 2.4912541428417914,
+        "label": "Global Citizen",
+        "weight": 23.506305240629704
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5785368392184345,
+          "2": 0.6301323371808665,
+          "3": 0.5759304267001789,
+          "4": 0.5636893081390466,
+          "5": 0.5829565738733911
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.6301323371808665,
+        "raw_weight": 1.260264674361733,
+        "label": "Creative Innovator",
+        "weight": 11.89126617396698
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.6017967030013172,
+          "2": 0.597984051721557,
+          "3": 0.5666909822338317,
+          "4": 0.6025176890724959,
+          "5": 0.5645458542954226
+        },
+        "matched_level": 4,
+        "peak_similarity": 0.6025176890724959,
+        "raw_weight": 2.4100707562899837,
+        "label": "Critical Thinker",
+        "weight": 22.74029689489827
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.6787125972895085,
+          "2": 0.658588547017413,
+          "3": 0.6611343182287919,
+          "4": 0.6323088607195968,
+          "5": 0.6584775558729686
+        },
+        "matched_level": 1,
+        "peak_similarity": 0.6787125972895085,
+        "raw_weight": 0.6787125972895085,
+        "label": "Reflective Future-Focused",
+        "weight": 6.404013628392366
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.6369350555826434,
+          "2": 0.6175123058818968,
+          "3": 0.6316621935741605,
+          "4": 0.6325478372480962,
+          "5": 0.6331401708085388
+        },
+        "matched_level": 1,
+        "peak_similarity": 0.6369350555826434,
+        "raw_weight": 0.6369350555826434,
+        "label": "Career Ready",
+        "weight": 6.009820346110671
+      }
+    ]
+  },
+  "tiktok": {
+    "title": "TikTok Technology Audit Lead",
+    "overall_score": 62,
+    "model": "BAAI/bge-base-en-v1.5",
+    "rubric_path": "employer_match/data/rubric.json",
+    "weights": {
+      "effective_communicator": 16.779612893510816,
+      "global_citizen": 23.272198732109825,
+      "creative_innovator": 10.809821842468475,
+      "critical_thinker": 16.099107737670394,
+      "reflective_future_focused": 16.517038374712044,
+      "career_ready": 16.522220419528452
+    },
+    "used_uniform_fallback": false,
+    "fallback_reason": null,
+    "competencies": [
+      {
+        "competency_id": "effective_communicator",
+        "level_similarities": {
+          "1": 0.6432969201060635,
+          "2": 0.6211493125061547,
+          "3": 0.6532109277434958,
+          "4": 0.6503592164662171,
+          "5": 0.642521204987387
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6532109277434958,
+        "raw_weight": 1.9596327832304872,
+        "label": "Effective Communicator",
+        "weight": 16.779612893510816
+      },
+      {
+        "competency_id": "global_citizen",
+        "level_similarities": {
+          "1": 0.6068509060221519,
+          "2": 0.6269014523802685,
+          "3": 0.6081951036911345,
+          "4": 0.679469840316373,
+          "5": 0.646218372305515
+        },
+        "matched_level": 4,
+        "peak_similarity": 0.679469840316373,
+        "raw_weight": 2.717879361265492,
+        "label": "Global Citizen",
+        "weight": 23.272198732109825
+      },
+      {
+        "competency_id": "creative_innovator",
+        "level_similarities": {
+          "1": 0.5644673900255254,
+          "2": 0.631220797458755,
+          "3": 0.5886215680905935,
+          "4": 0.5903627141972715,
+          "5": 0.5891754421178281
+        },
+        "matched_level": 2,
+        "peak_similarity": 0.631220797458755,
+        "raw_weight": 1.26244159491751,
+        "label": "Creative Innovator",
+        "weight": 10.809821842468475
+      },
+      {
+        "competency_id": "critical_thinker",
+        "level_similarities": {
+          "1": 0.583985005815553,
+          "2": 0.5945764840745258,
+          "3": 0.6267196488920832,
+          "4": 0.6081955981908007,
+          "5": 0.5673070553270143
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6267196488920832,
+        "raw_weight": 1.8801589466762496,
+        "label": "Critical Thinker",
+        "weight": 16.099107737670394
+      },
+      {
+        "competency_id": "reflective_future_focused",
+        "level_similarities": {
+          "1": 0.6142580427748631,
+          "2": 0.5980475058567009,
+          "3": 0.6429892053405506,
+          "4": 0.6309805102935766,
+          "5": 0.630556080371742
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6429892053405506,
+        "raw_weight": 1.9289676160216518,
+        "label": "Reflective Future-Focused",
+        "weight": 16.517038374712044
+      },
+      {
+        "competency_id": "career_ready",
+        "level_similarities": {
+          "1": 0.6115315480241189,
+          "2": 0.6326511713921232,
+          "3": 0.6431909363532746,
+          "4": 0.6112653897459794,
+          "5": 0.6037498415502327
+        },
+        "matched_level": 3,
+        "peak_similarity": 0.6431909363532746,
+        "raw_weight": 1.9295728090598239,
+        "label": "Career Ready",
+        "weight": 16.522220419528452
+      }
+    ]
+  }
+}
