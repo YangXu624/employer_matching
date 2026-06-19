@@ -67,3 +67,20 @@ def test_score_text_payload_is_json_serializable():
     )
 
     assert json.loads(json.dumps(payload))["title"] == "Coordinator"
+
+
+def test_build_audit_fallback_response_keeps_baseline_weights():
+    from employer_match.web_app import build_audit_fallback_response
+
+    weights = {competency_id: index * 10 for index, competency_id in enumerate(COMPETENCY_ORDER)}
+
+    payload = build_audit_fallback_response(weights, "AI provider is not configured.")
+
+    assert payload["audit_status"] == "fallback_unavailable"
+    assert payload["changes_count"] == 0
+    assert payload["baseline"] == weights
+    assert payload["corrected"] == weights
+    assert "AI audit unavailable" in payload["summary"]
+    assert "baseline weights were kept" in payload["summary"]
+    assert [item["competency_id"] for item in payload["competencies"]] == COMPETENCY_ORDER
+    assert all(item["changed"] is False for item in payload["competencies"])

@@ -13,7 +13,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.api.storage import list_checks, save_check  # noqa: E402
-from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload  # noqa: E402
+from employer_match.web_app import (  # noqa: E402
+    build_audit_fallback_response,
+    load_sample_jds,
+    match_candidates,
+    score_text_payload,
+)
 
 
 class EmployerMatchApiHandler(BaseHTTPRequestHandler):
@@ -54,6 +59,15 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
             try:
                 weights = payload.get("weights", {})
                 self.write_json({"matches": match_candidates(weights)})
+            except Exception as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if path == "/api/audit":
+            payload = self.read_json()
+            try:
+                weights = payload.get("weights", {})
+                self.write_json(build_audit_fallback_response(weights))
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return

@@ -24,3 +24,23 @@ def test_deployable_frontend_uses_configured_api_base_for_backend_calls():
     assert "function apiUrl(path)" in app_js
     assert 'apiUrl("/api/score")' in app_js
     assert 'apiUrl("/api/match")' in app_js
+
+
+def test_frontend_shells_expose_ai_audit_controls():
+    for path in ["frontend/index.html", "employer_match/static/index.html"]:
+        html = Path(path).read_text(encoding="utf-8")
+
+        assert 'id="auditButton"' in html
+        assert 'id="auditSection"' in html
+        assert 'id="auditResults"' in html
+        assert 'id="applyAuditButton"' in html
+
+
+def test_frontend_apps_call_unified_audit_endpoint_and_explain_fallback():
+    for path in ["frontend/static/app.js", "employer_match/static/app.js"]:
+        app_js = Path(path).read_text(encoding="utf-8")
+
+        assert 'apiUrl("/api/audit")' in app_js or 'fetch("/api/audit"' in app_js
+        assert "AI audit unavailable" in app_js
+        assert "baseline weights were kept" in app_js
+        assert "applyAuditResult" in app_js
