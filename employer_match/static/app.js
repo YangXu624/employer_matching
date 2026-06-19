@@ -5,6 +5,7 @@ const state = {
 };
 
 const historyList = document.querySelector("#historyList");
+const clearHistoryButton = document.querySelector("#clearHistoryButton");
 const jobTitle = document.querySelector("#jobTitle");
 const jobText = document.querySelector("#jobText");
 const statusText = document.querySelector("#statusText");
@@ -46,13 +47,67 @@ function renderCards(container, items, onClick) {
 }
 
 function renderHistory() {
-  renderCards(historyList, state.history, (item) => {
+  historyList.innerHTML = "";
+  if (!state.history.length) {
+    historyList.classList.add("empty-list");
+    historyList.textContent = "No saved checks yet.";
+    updateHistoryControls();
+    return;
+  }
+  historyList.classList.remove("empty-list");
+  state.history.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "history-row";
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "item-card";
+    card.innerHTML = `<strong>${item.title}</strong><span>${compactText(item.body || item.summary || "")}</span>`;
+    card.addEventListener("click", () => loadHistoryItem(item));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "delete-history-btn";
+    deleteButton.textContent = "×";
+    deleteButton.setAttribute("aria-label", `Delete ${item.title}`);
+    deleteButton.addEventListener("click", () => deleteHistoryItem(index));
+
+    row.appendChild(card);
+    row.appendChild(deleteButton);
+    historyList.appendChild(row);
+  });
+  updateHistoryControls();
+}
+
+function loadHistoryItem(item) {
     jobTitle.value = item.title;
     jobText.value = item.body;
     if (item.result) {
       renderResult(item.result);
     }
-  });
+}
+
+function persistHistory() {
+  if (state.history.length) {
+    localStorage.setItem("employerMatchHistory", JSON.stringify(state.history));
+  } else {
+    localStorage.removeItem("employerMatchHistory");
+  }
+}
+
+function updateHistoryControls() {
+  if (clearHistoryButton) clearHistoryButton.hidden = state.history.length === 0;
+}
+
+function deleteHistoryItem(index) {
+  state.history.splice(index, 1);
+  persistHistory();
+  renderHistory();
+}
+
+function clearHistory() {
+  state.history = [];
+  localStorage.removeItem("employerMatchHistory");
+  renderHistory();
 }
 
 function renderResult(result) {
@@ -232,8 +287,12 @@ function saveHistory(result) {
     savedAt: new Date().toISOString(),
   };
   state.history = [item, ...state.history.filter((entry) => entry.body !== item.body)].slice(0, 12);
-  localStorage.setItem("employerMatchHistory", JSON.stringify(state.history));
+  persistHistory();
   renderHistory();
+}
+
+if (clearHistoryButton) {
+  clearHistoryButton.addEventListener("click", clearHistory);
 }
 
 async function scoreCurrentJd() {

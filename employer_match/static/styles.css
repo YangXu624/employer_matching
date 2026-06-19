@@ -92,6 +92,56 @@ section + section {
   margin-top: 22px;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.text-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font-size: 12px;
+}
+
+.text-btn:hover {
+  color: #dc2626;
+  background: transparent;
+}
+
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.history-row .item-card {
+  flex: 1;
+  min-width: 0;
+}
+
+.delete-history-btn {
+  flex: 0 0 32px;
+  width: 32px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.delete-history-btn:hover {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: var(--muted);

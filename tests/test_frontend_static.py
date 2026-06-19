@@ -44,3 +44,21 @@ def test_frontend_apps_call_unified_audit_endpoint_and_explain_fallback():
         assert "AI audit unavailable" in app_js
         assert "baseline weights were kept" in app_js
         assert "applyAuditResult" in app_js
+
+
+def test_frontend_shells_expose_saved_check_cleanup_control():
+    for path in ["frontend/index.html", "employer_match/static/index.html"]:
+        html = Path(path).read_text(encoding="utf-8")
+
+        assert 'id="clearHistoryButton"' in html
+        assert 'class="section-header"' in html
+
+
+def test_frontend_apps_support_deleting_and_clearing_saved_checks():
+    for path in ["frontend/static/app.js", "employer_match/static/app.js"]:
+        app_js = Path(path).read_text(encoding="utf-8")
+
+        assert "deleteHistoryItem" in app_js
+        assert "clearHistory" in app_js
+        assert "delete-history-btn" in app_js
+        assert "localStorage.removeItem(\"employerMatchHistory\")" in app_js
