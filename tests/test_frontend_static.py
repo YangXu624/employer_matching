@@ -61,7 +61,7 @@ def test_frontend_apps_support_deleting_and_clearing_saved_checks():
         assert "deleteHistoryItem" in app_js
         assert "clearHistory" in app_js
         assert "delete-history-btn" in app_js
-        assert "localStorage.removeItem(\"employerMatchHistory\")" in app_js
+        assert 'localStorage.removeItem("employerMatchHistory")' in app_js
 
 
 def test_frontend_apps_render_match_explanations():
