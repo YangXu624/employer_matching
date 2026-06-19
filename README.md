@@ -75,8 +75,7 @@ The repo now has deployment boundaries for a Vercel-friendly demo:
 
 ```text
 frontend/          # static browser UI; deploy this folder to Vercel
-backend/api/       # lightweight Python API, CORS, SQLite demo storage
-backend/scorer/    # scorer boundary notes; current scorer code remains in employer_match/
+backend/api/       # Python API, CORS, SQLite demo storage (also serves frontend/ locally)
 employer_match/    # existing scorer package and local all-in-one web app
 ```
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -12,8 +13,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+
 from backend.api.storage import list_checks, save_check  # noqa: E402
-from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload  # noqa: E402
+from employer_match.web_app import llm_score_text_payload, load_sample_jds, match_candidates, score_text_payload  # noqa: E402
 
 
 class EmployerMatchApiHandler(BaseHTTPRequestHandler):
@@ -35,7 +38,7 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
         if path == "/api/checks":
             self.write_json({"checks": list_checks()})
             return
-        self.write_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
+        self.serve_static(path)
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
@@ -45,6 +48,16 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
             title = str(payload.get("title", "Untitled JD"))
             try:
                 self.write_json(score_text_payload(jd_text, title))
+            except Exception as exc:
+                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if path == "/api/llm-score":
+            payload = self.read_json()
+            jd_text = str(payload.get("jd_text", ""))
+            title = str(payload.get("title", "Untitled JD"))
+            try:
+                self.write_json(llm_score_text_payload(jd_text, title))
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
@@ -102,6 +115,25 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args) -> None:
         return
+
+    def serve_static(self, path: str) -> None:
+        if path == "/":
+            path = "/index.html"
+        # Strip leading slash and resolve relative to frontend dir
+        relative = path.lstrip("/")
+        file_path = (FRONTEND_DIR / relative).resolve()
+        # Prevent directory traversal
+        if not file_path.is_file() or FRONTEND_DIR.resolve() not in file_path.parents:
+            self.write_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
+            return
+        content_type = mimetypes.guess_type(file_path.name)[0] or "application/octet-stream"
+        body = file_path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.write_cors_headers()
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8766) -> None:
