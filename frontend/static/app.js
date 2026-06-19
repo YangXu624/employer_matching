@@ -19,11 +19,6 @@ const spiderChartCanvas = document.querySelector("#spiderChart");
 const matchButton = document.getElementById("matchButton");
 const candidatesSection = document.getElementById("candidatesSection");
 const candidatesList = document.getElementById("candidatesList");
-const auditButton = document.getElementById("auditButton");
-const auditSection = document.getElementById("auditSection");
-const auditSummary = document.getElementById("auditSummary");
-const auditResults = document.getElementById("auditResults");
-const applyAuditButton = document.getElementById("applyAuditButton");
 const llmCheckButton = document.getElementById("llmCheckButton");
 let chartInstance = null;
 
@@ -184,7 +179,6 @@ function renderResult(result) {
 function handleSliderChange(changedId, newValue) {
   newValue = Math.max(0, Math.min(100, newValue));
   state.currentWeights = { ...state.currentWeights, [changedId]: newValue };
-  resetAudit();
   updateDOM();
 }
 
@@ -333,7 +327,6 @@ if (clearHistoryButton) {
 async function scoreCurrentJd() {
   scoreButton.disabled = true;
   statusText.textContent = "Scoring...";
-  resetAudit();
   resetComparison();
   try {
     const response = await fetch(apiUrl("/api/score"), {
@@ -373,7 +366,6 @@ newCheckButton.addEventListener("click", () => {
   if (budgetTracker) budgetTracker.style.display = "none";
   if (matchButton) matchButton.style.display = "none";
   if (candidatesSection) candidatesSection.style.display = "none";
-  resetAudit();
 });
 
 scoreButton.addEventListener("click", scoreCurrentJd);
@@ -450,86 +442,7 @@ if (resetButton) {
       state.lastResult.competencies.forEach(c => {
         c.weight = c.ai_weight;
       });
-      resetAudit();
       renderResult(state.lastResult);
-    }
-  });
-}
-
-function resetAudit() {
-  if (auditSection) auditSection.style.display = "none";
-  if (auditSummary) auditSummary.textContent = "";
-  if (auditResults) auditResults.innerHTML = "";
-  if (applyAuditButton) applyAuditButton.style.display = "none";
-}
-
-function applyAuditResult(auditPayload) {
-  if (!state.lastResult || !auditPayload.corrected) return;
-  state.lastResult.competencies.forEach((competency) => {
-    const corrected = auditPayload.corrected[competency.competency_id];
-    if (corrected !== undefined) {
-      competency.weight = Math.round(Number(corrected));
-    }
-  });
-  renderResult(state.lastResult);
-  statusText.textContent = "Audit corrections applied. Review the allocation before saving.";
-}
-
-function renderAudit(auditPayload) {
-  const payload = auditPayload;
-  auditSection.style.display = "block";
-  auditSummary.textContent = payload.summary || "AI audit complete.";
-  auditResults.innerHTML = "";
-  const isFallback = payload.audit_status?.startsWith("fallback_");
-
-  (payload.competencies || []).forEach((item) => {
-    const card = document.createElement("article");
-    card.className = `audit-card ${item.changed ? "" : "unchanged"}`;
-    card.innerHTML = `
-      <div class="audit-head">
-        <strong>${item.label}</strong>
-        <span class="audit-nums">${item.baseline} → ${item.corrected} pts</span>
-      </div>
-      <div class="audit-reason">${item.reason}</div>
-      <div class="audit-evidence">${item.evidence}</div>
-    `;
-    auditResults.appendChild(card);
-  });
-
-  if (isFallback) {
-    statusText.textContent = "AI audit unavailable; baseline weights were kept.";
-    applyAuditButton.style.display = "none";
-    return;
-  }
-
-  applyAuditButton.style.display = payload.changes_count > 0 ? "block" : "none";
-  applyAuditButton.onclick = () => applyAuditResult(payload);
-}
-
-if (auditButton) {
-  auditButton.addEventListener("click", async () => {
-    if (!state.lastResult) return;
-    auditButton.disabled = true;
-    auditButton.textContent = "Auditing...";
-    try {
-      const response = await fetch(apiUrl("/api/audit"), {
-        method: "POST",
-        headers: apiHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          title: jobTitle.value,
-          jd_text: jobText.value,
-          weights: state.currentWeights,
-          competencies: state.lastResult.competencies,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "AI audit failed");
-      renderAudit(payload);
-    } catch (error) {
-      statusText.textContent = `AI audit failed: ${error.message}`;
-    } finally {
-      auditButton.disabled = false;
-      auditButton.textContent = "AI Audit";
     }
   });
 }

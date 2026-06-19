@@ -125,38 +125,6 @@ def score_text_payload(
     }
 
 
-def build_audit_fallback_response(
-    weights: dict[str, float],
-    message: str = "AI provider is not configured.",
-) -> dict:
-    baseline = {
-        competency_id: int(round(float(weights.get(competency_id, 0))))
-        for competency_id in COMPETENCY_ORDER
-    }
-    return {
-        "model": "unavailable",
-        "audit_status": "fallback_unavailable",
-        "warning": message,
-        "changes_count": 0,
-        "baseline": baseline,
-        "corrected": baseline,
-        "competencies": [
-            {
-                "competency_id": competency_id,
-                "label": COMPETENCY_LABELS[competency_id],
-                "baseline": baseline[competency_id],
-                "corrected": baseline[competency_id],
-                "delta": 0,
-                "changed": False,
-                "reason": "AI audit unavailable; baseline weight kept.",
-                "evidence": "No correction was applied.",
-            }
-            for competency_id in COMPETENCY_ORDER
-        ],
-        "summary": f"AI audit unavailable; baseline weights were kept. {message}",
-    }
-
-
 def load_candidates() -> list[dict]:
     candidates_path = PROJECT_ROOT / "employer_match" / "data" / "candidates.csv"
     candidates = []
@@ -280,16 +248,6 @@ class EmployerMatchHandler(BaseHTTPRequestHandler):
                 weights = payload.get("weights", {})
                 matches = match_candidates(weights)
                 self.write_json({"matches": matches})
-            except Exception as exc:
-                self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
-            return
-
-        if self.path == "/api/audit":
-            length = int(self.headers.get("Content-Length", "0"))
-            try:
-                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
-                weights = payload.get("weights", {})
-                self.write_json(build_audit_fallback_response(weights))
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return

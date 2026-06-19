@@ -26,24 +26,25 @@ def test_deployable_frontend_uses_configured_api_base_for_backend_calls():
     assert 'apiUrl("/api/match")' in app_js
 
 
-def test_frontend_shells_expose_ai_audit_controls():
+def test_frontend_shells_do_not_expose_ai_audit_controls():
     for path in ["frontend/index.html", "employer_match/static/index.html"]:
         html = Path(path).read_text(encoding="utf-8")
 
-        assert 'id="auditButton"' in html
-        assert 'id="auditSection"' in html
-        assert 'id="auditResults"' in html
-        assert 'id="applyAuditButton"' in html
+        assert "AI Audit" not in html
+        assert 'id="auditButton"' not in html
+        assert 'id="auditSection"' not in html
+        assert 'id="auditResults"' not in html
+        assert 'id="applyAuditButton"' not in html
 
 
-def test_frontend_apps_call_unified_audit_endpoint_and_explain_fallback():
+def test_frontend_apps_do_not_call_or_render_ai_audit():
     for path in ["frontend/static/app.js", "employer_match/static/app.js"]:
         app_js = Path(path).read_text(encoding="utf-8")
 
-        assert 'apiUrl("/api/audit")' in app_js or 'fetch("/api/audit"' in app_js
-        assert "AI audit unavailable" in app_js
-        assert "baseline weights were kept" in app_js
-        assert "applyAuditResult" in app_js
+        assert "/api/audit" not in app_js
+        assert "auditButton" not in app_js
+        assert "renderAudit" not in app_js
+        assert "applyAuditResult" not in app_js
 
 
 def test_frontend_shells_expose_saved_check_cleanup_control():
@@ -74,12 +75,12 @@ def test_frontend_apps_render_match_explanations():
         assert "match.match_reason" in app_js
 
 
-def test_frontend_audit_copy_distinguishes_ai_fallback():
+def test_frontend_static_assets_do_not_include_audit_copy():
     app_js = Path("frontend/static/app.js").read_text(encoding="utf-8")
 
-    assert 'payload.audit_status?.startsWith("fallback_")' in app_js
-    assert "AI audit unavailable" in app_js
-    assert "baseline weights were kept" in app_js
+    assert "audit_status" not in app_js
+    assert "AI audit unavailable" not in app_js
+    assert "baseline weights were kept" not in app_js
 
 
 def test_local_app_uses_local_api_by_default():
