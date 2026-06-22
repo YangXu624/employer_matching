@@ -3,86 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Employer Match Scoring</title>
+    <title>PathCredits Employer Match</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <main class="app-shell">
-      <aside class="history-panel" aria-label="Previous and sample job descriptions">
-        <div class="panel-header">
-          <h1>JD Checks</h1>
-          <button id="newCheckButton" type="button">New</button>
+    <main class="landing-shell">
+      <div class="landing-card">
+        <p class="eyebrow">PathCredits</p>
+        <h1>Employer Match</h1>
+        <p class="landing-lede">
+          Employers score job descriptions against six competencies. Seekers build a competency passport from their resume.
+        </p>
+        <div class="landing-actions">
+          <a class="primary-link" href="/login-seeker">I&apos;m a seeker</a>
+          <a class="secondary-link" href="/login-employer">I&apos;m an employer</a>
         </div>
-        <section>
-          <h2>Samples</h2>
-          <div id="sampleList" class="stack-list empty-list">Loading samples...</div>
-        </section>
-        <section>
-          <div class="section-header">
-            <h2>Previous</h2>
-            <button id="clearHistoryButton" type="button" class="text-btn" hidden>Clear all</button>
-          </div>
-          <div id="historyList" class="stack-list empty-list">No saved checks yet.</div>
-        </section>
-      </aside>
-
-      <section class="editor-panel" aria-label="Job description input">
-        <div class="editor-header">
-          <div>
-            <p class="eyebrow">Employer scorer</p>
-            <h2>Input job description</h2>
-          </div>
-          <button id="scoreButton" type="button">Score JD</button>
-        </div>
-        <label class="field-label" for="jobTitle">Label</label>
-        <input id="jobTitle" type="text" value="Untitled JD" />
-        <label class="field-label" for="jobText">Job description</label>
-        <textarea
-          id="jobText"
-          spellcheck="true"
-          placeholder="Paste a job description here, then score it."
-        ></textarea>
-        <p id="statusText" class="status-text" role="status"></p>
-      </section>
-
-      <aside class="score-panel" aria-label="Scoring results">
-        <section>
-          <h2>Breakdown</h2>
-          <div id="breakdownList" class="breakdown-list"></div>
-          <div class="budget-tracker" id="budgetTracker" style="display: none;">
-            <p id="budgetText">Allocated: 0.0 / 100</p>
-            <div class="action-buttons">
-              <button id="auditButton" type="button" class="secondary-btn">AI Audit</button>
-              <button id="resetButton" type="button" class="secondary-btn">Reset</button>
-              <button id="saveButton" type="button">Save Scores</button>
-            </div>
-            <div style="margin-top: 12px;">
-              <button id="matchButton" type="button" style="display: none; width: 100%;">
-                Match with Students
-              </button>
-            </div>
-          </div>
-        </section>
-        <section id="auditSection" style="display: none; margin-top: 30px;">
-          <h2>AI Weight Audit</h2>
-          <p id="auditSummary" class="status-text"></p>
-          <div id="auditResults" class="stack-list"></div>
-          <button id="applyAuditButton" type="button" style="display: none; width: 100%; margin-top: 12px;">
-            Apply corrections
-          </button>
-        </section>
-        <section id="candidatesSection" style="display: none; margin-top: 30px;">
-          <h2>Top Student Matches</h2>
-          <div id="candidatesList" class="stack-list"></div>
-        </section>
-        <section style="margin-top: 30px;">
-          <h2>Holistic View</h2>
-          <canvas id="spiderChart"></canvas>
-        </section>
-      </aside>
+      </div>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/config.js"></script>
-    <script src="/static/app.js"></script>
   </body>
 </html>

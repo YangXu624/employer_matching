@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -20,6 +21,16 @@ except ImportError:
     pass
 
 from backend.api.storage import list_checks, save_check  # noqa: E402
+from backend.seeker.passport_service import (  # noqa: E402
+    AuthError,
+    SupabaseConfigError,
+    enqueue_passport_job,
+    get_seeker_passport,
+    load_demo_seekers,
+    load_supabase_candidates,
+    passport_status_payload,
+    verify_access_token,
+)
 from employer_match.web_app import load_sample_jds, match_candidates, score_text_payload  # noqa: E402
 
 
@@ -42,6 +53,12 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
         if path == "/api/checks":
             self.write_json({"checks": list_checks()})
             return
+        if path == "/api/seeker/passport":
+            self.handle_seeker_passport_get()
+            return
+        if path == "/api/seeker/passport/status":
+            self.handle_seeker_passport_status()
+            return
         self.write_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -60,9 +77,25 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
             payload = self.read_json()
             try:
                 weights = payload.get("weights", {})
-                self.write_json({"matches": match_candidates(weights)})
+                demo_candidates = load_demo_seekers()
+                live_candidates = load_supabase_candidates()
+                include_csv_demo = not demo_candidates
+                extra = live_candidates + demo_candidates
+                self.write_json(
+                    {
+                        "matches": match_candidates(
+                            weights,
+                            extra,
+                            include_csv_demo=include_csv_demo,
+                        )
+                    }
+                )
             except Exception as exc:
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if path == "/api/seeker/passport":
+            self.handle_seeker_passport_post()
             return
 
         if path == "/api/audit":
@@ -129,16 +162,102 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
         self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header(
-            "Access-Control-Allow-Headers", "Content-Type, ngrok-skip-browser-warning"
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization, ngrok-skip-browser-warning",
         )
 
+    def read_bearer_token(self) -> str | None:
+        auth = self.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            return auth[7:].strip()
+        return None
+
+    def require_seeker_user(self) -> dict | None:
+        token = self.read_bearer_token()
+        if not token:
+            self.write_json({"error": "Missing Authorization bearer token."}, HTTPStatus.UNAUTHORIZED)
+            return None
+        try:
+            user = verify_access_token(token)
+        except AuthError as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+            return None
+        except SupabaseConfigError as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return None
+        return user
+
+    def handle_seeker_passport_get(self) -> None:
+        user = self.require_seeker_user()
+        if not user:
+            return
+        logging.getLogger("http").info("GET /api/seeker/passport user=%s", user["id"][:8])
+        try:
+            passport = get_seeker_passport(user["id"]) or {
+                "status": "idle",
+                "scores": {},
+                "details": {},
+            }
+            if passport.get("status") == "processing":
+                payload = passport_status_payload(user["id"])
+                passport = payload["passport"]
+            self.write_json({"passport": passport})
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def handle_seeker_passport_status(self) -> None:
+        user = self.require_seeker_user()
+        if not user:
+            return
+        logging.getLogger("http").info("GET /api/seeker/passport/status user=%s", user["id"][:8])
+        try:
+            self.write_json(passport_status_payload(user["id"]))
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def handle_seeker_passport_post(self) -> None:
+        user = self.require_seeker_user()
+        if not user:
+            return
+        payload = self.read_json()
+        resume_path = str(payload.get("resume_path", "")).strip()
+        logging.getLogger("http").info(
+            "POST /api/seeker/passport user=%s resume=%s",
+            user["id"][:8],
+            resume_path or "(missing)",
+        )
+        if not resume_path:
+            self.write_json({"error": "resume_path is required."}, HTTPStatus.BAD_REQUEST)
+            return
+        expected_prefix = f"{user['id']}/"
+        if not resume_path.startswith(expected_prefix):
+            self.write_json({"error": "Invalid resume_path for this user."}, HTTPStatus.FORBIDDEN)
+            return
+        try:
+            job = enqueue_passport_job(user["id"], resume_path, user.get("email"))
+            logging.getLogger("http").info(
+                "POST /api/seeker/passport queued job=%s",
+                job.get("job_id", "")[:8],
+            )
+            self.write_json(job, HTTPStatus.ACCEPTED)
+        except AuthError as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.FORBIDDEN)
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
     def log_message(self, format: str, *args) -> None:
-        return
+        logging.getLogger("http").info("%s - %s", self.address_string(), format % args)
 
 
 def run_server(host: str = "127.0.0.1", port: int = 8766) -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
     server = ThreadingHTTPServer((host, port), EmployerMatchApiHandler)
     print(f"Employer Match API running at http://{host}:{port}", flush=True)
+    print("Passport scoring logs appear here when a seeker uploads a resume.", flush=True)
     server.serve_forever()
 
 

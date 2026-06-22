@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Passport</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="seeker-shell">
+      <header class="dash-header">
+        <div>
+          <p class="eyebrow">Seeker dashboard</p>
+          <h1 id="welcomeTitle">My competency passport</h1>
+        </div>
+        <button id="logoutButton" type="button" class="secondary-btn">Log out</button>
+      </header>
+
+      <section class="seeker-panel">
+        <h2>Upload resume</h2>
+        <p class="auth-sub">
+          PDF only, up to 5 MB. Scores are generated from your resume; survey-backed competencies may have lower coverage.
+        </p>
+        <input id="resumeInput" type="file" accept="application/pdf,.pdf" />
+        <button id="uploadButton" type="button">Upload and score</button>
+        <p id="statusText" class="status-text" role="status"></p>
+        <div id="uploadLoading" class="inline-loading" hidden>
+          <span class="spinner spinner-sm" aria-hidden="true"></span>
+          <span id="uploadLoadingText">Working…</span>
+        </div>
+      </section>
+
+      <section id="passportSection" class="seeker-panel" hidden>
+        <h2>Your passport</h2>
+        <div id="passportLoading" class="passport-loading" hidden role="status" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <p id="passportLoadingTitle" class="loading-title">Building your competency passport…</p>
+          <p id="passportLoadingDetail" class="loading-detail">
+            The AI pipeline is reading your resume and scoring all six competencies. This usually takes 1–2 minutes.
+          </p>
+          <p id="passportLoadingElapsed" class="loading-elapsed"></p>
+          <ol id="passportLoadingSteps" class="loading-steps">
+            <li data-step="upload">Resume uploaded</li>
+            <li data-step="queue">Scoring job queued</li>
+            <li data-step="score">AI scoring competencies</li>
+            <li data-step="done">Passport ready</li>
+          </ol>
+        </div>
+        <div id="passportStatus" class="status-text"></div>
+        <div id="passportList" class="breakdown-list"></div>
+        <canvas id="passportChart"></canvas>
+        <button id="showOpportunitiesButton" type="button" class="primary-action" hidden>
+          Show opportunities
+        </button>
+      </section>
+
+      <section id="jobsSection" class="seeker-panel" hidden>
+        <h2>Your ranked opportunities</h2>
+        <p class="auth-sub">Jobs ranked by how well your passport matches what each employer is looking for.</p>
+        <div id="jobsList" class="stack-list empty-list"></div>
+        <article id="jobDetail" class="job-detail" hidden>
+          <h3 id="jobDetailTitle"></h3>
+          <p id="jobDetailMatch" class="status-text"></p>
+          <pre id="jobDetailBody"></pre>
+        </article>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/config.js"></script>
+    <script src="/static/supabase-client.js"></script>
+    <script src="/static/auth.js"></script>
+    <script src="/static/seeker.js"></script>
+  </body>
+</html>

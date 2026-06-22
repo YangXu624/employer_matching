@@ -132,6 +132,7 @@ def load_candidates() -> list[dict]:
             for row in reader:
                 candidates.append({
                     "name": row["name"],
+                    "source": "demo",
                     "scores": {
                         "effective_communicator": float(row["effective_communicator"]),
                         "global_citizen": float(row["global_citizen"]),
@@ -143,8 +144,16 @@ def load_candidates() -> list[dict]:
                 })
     return candidates
 
-def match_candidates(weights: dict[str, float]) -> list[dict]:
-    candidates = load_candidates()
+
+def match_candidates(
+    weights: dict[str, float],
+    extra_candidates: list[dict] | None = None,
+    *,
+    include_csv_demo: bool = True,
+) -> list[dict]:
+    candidates = load_candidates() if include_csv_demo else []
+    if extra_candidates:
+        candidates.extend(extra_candidates)
     total_weight = sum(weights.values())
     
     for cand in candidates:

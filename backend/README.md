@@ -30,12 +30,73 @@ Current routes:
 - `GET /health`
 - `GET /api/samples`
 - `POST /api/score`
-- `POST /api/match`
+- `POST /api/match` (demo CSV + Supabase seeker passports when configured)
 - `POST /api/audit` (AI weight auditor, requires `GOOGLE_API_KEY`)
 - `GET /api/checks`
 - `POST /api/checks`
+- `GET /api/seeker/passport` (Bearer token)
+- `GET /api/seeker/passport/status` (Bearer token)
+- `POST /api/seeker/passport` (Bearer token, enqueue resume scoring job)
 
 SQLite demo data is stored in `.data/employer_match.db` at the repo root.
+
+## Seeker passport scoring (Supabase + passport_agent)
+
+Seekers upload a PDF resume from the frontend; the backend downloads it from
+Supabase Storage and calls **`passport_agent/seeker_entry.py`** — the only file
+the app depends on inside that folder.
+
+### Replaceable pipeline contract
+
+When the scoring pipeline changes:
+
+1. Replace the `passport_agent/` folder (or set `PASSPORT_AGENT_ROOT` in `.env`)
+2. Update **`seeker_entry.py`** so `score_from_resume(pdf_path, student_name, email)` returns:
+
+```python
+{
+  "scores": {
+    "effective_communicator": 0-100,
+    "global_citizen": 0-100,
+    "creative_innovator": 0-100,
+    "critical_thinker": 0-100,
+    "reflective_future_focused": 0-100,
+    "career_ready": 0-100,
+  },
+  "details": { ... },  # optional
+}
+```
+
+3. Restart the backend — no frontend or Supabase changes needed.
+
+[`backend/seeker/resume_scorer.py`](seeker/resume_scorer.py) is a thin loader: it
+imports `score_from_resume` from the entry point and validates all six keys.
+[`passport_agent/seeker_entry.py`](../passport_agent/seeker_entry.py) is tracked
+in git (the rest of `passport_agent/` stays gitignored).
+
+Requires in `.env`:
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GOOGLE_API_KEY=your-key-here
+# optional — default passport_agent/
+# PASSPORT_AGENT_ROOT=passport_agent
+```
+
+Run the SQL migration in [`../supabase/migration.sql`](../supabase/migration.sql)
+in Supabase before testing login.
+
+Install backend extras:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[agent,seeker]"
+```
+
+The `passport_agent/` folder must exist locally on the machine running the API
+(most of it is gitignored). Keep [`passport_agent/seeker_entry.py`](../passport_agent/seeker_entry.py)
+when swapping pipeline versions.
 
 ## AI Weight Auditor (Gemini + LangGraph)
 

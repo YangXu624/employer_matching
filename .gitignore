@@ -12,3 +12,4 @@ __pycache__/
 
 # Seeker scoring pipeline (imported) - contains student PII and secrets, keep local-only for now
 passport_agent/
+!passport_agent/seeker_entry.py

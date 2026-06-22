@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seeker Login</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="auth-shell">
+      <div class="auth-card">
+        <p class="eyebrow">Seeker</p>
+        <h1>Sign in</h1>
+        <p class="auth-sub">Upload your resume to generate your competency passport.</p>
+        <form id="authForm" class="auth-form">
+          <label class="field-label" for="displayName">Name</label>
+          <input id="displayName" type="text" autocomplete="name" placeholder="Your name" />
+          <label class="field-label" for="email">Email</label>
+          <input id="email" type="email" required autocomplete="email" />
+          <label class="field-label" for="password">Password</label>
+          <input id="password" type="password" required minlength="6" autocomplete="current-password" />
+          <button id="submitButton" type="submit">Sign in</button>
+          <button id="toggleModeButton" type="button" class="text-btn">Need an account? Sign up</button>
+        </form>
+        <p id="statusText" class="status-text" role="status"></p>
+        <a class="back-link" href="/">Back to home</a>
+      </div>
+    </main>
+    <script src="/config.js"></script>
+    <script src="/static/supabase-client.js"></script>
+    <script src="/static/auth.js"></script>
+    <script src="/static/login.js"></script>
+    <script>
+      window.LoginPage.init({ role: "seeker", dashboardPath: "/seeker" });
+    </script>
+  </body>
+</html>

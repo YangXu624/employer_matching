@@ -1,4 +1,6 @@
-const API_BASE_URL = (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
+function getApiBaseUrl() {
+  return (window.EMPLOYER_MATCH_API_BASE_URL || "").replace(/\/$/, "");
+}
 
 function readHistory() {
   try {
@@ -36,7 +38,10 @@ const applyAuditButton = document.getElementById("applyAuditButton");
 let chartInstance = null;
 
 function apiUrl(path) {
-  return `${API_BASE_URL}${path}`;
+  if (window.EmployerMatchAuth?.apiUrl) {
+    return window.EmployerMatchAuth.apiUrl(path);
+  }
+  return `${getApiBaseUrl()}${path}`;
 }
 
 function escapeHtml(value) {
@@ -47,6 +52,9 @@ function escapeHtml(value) {
 }
 
 function apiHeaders(extra = {}) {
+  if (window.EmployerMatchAuth?.apiHeaders) {
+    return window.EmployerMatchAuth.apiHeaders(extra);
+  }
   return { "ngrok-skip-browser-warning": "true", ...extra };
 }
 
@@ -138,7 +146,8 @@ function renderHistory() {
 
 async function loadSamples() {
   if (!sampleList) return;
-  if (!API_BASE_URL) {
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
     sampleList.classList.add("empty-list");
     sampleList.textContent = "Backend URL not configured in config.js.";
     statusText.textContent = "Set EMPLOYER_MATCH_API_BASE_URL in config.js.";
@@ -185,7 +194,7 @@ async function loadSamples() {
     sampleList.classList.add("empty-list");
     sampleList.textContent = error.message || "Failed to load samples.";
     statusText.textContent =
-      "Could not load samples. Is the backend running on " + API_BASE_URL + "?";
+      "Could not load samples. Is the backend running on " + apiBase + "?";
   }
 }
 
@@ -396,7 +405,7 @@ async function scoreCurrentJd() {
   }
 }
 
-newCheckButton.addEventListener("click", () => {
+newCheckButton?.addEventListener("click", () => {
   jobTitle.value = "Untitled JD";
   jobText.value = "";
   statusText.textContent = "";
@@ -412,7 +421,7 @@ newCheckButton.addEventListener("click", () => {
   hideAudit();
 });
 
-scoreButton.addEventListener("click", scoreCurrentJd);
+scoreButton?.addEventListener("click", scoreCurrentJd);
 
 const resetButton = document.getElementById("resetButton");
 const saveButton = document.getElementById("saveButton");
@@ -429,10 +438,19 @@ if (resetButton) {
 }
 
 if (saveButton) {
-  saveButton.addEventListener("click", () => {
-    if (state.lastResult) {
-      saveHistory(state.lastResult);
-      statusText.textContent = "Scores saved! You can now match with candidates.";
+  saveButton.addEventListener("click", async () => {
+    if (!state.lastResult) return;
+    saveHistory(state.lastResult);
+    saveButton.disabled = true;
+    statusText.textContent = "Saving and publishing job…";
+    try {
+      await publishCurrentJob();
+      statusText.textContent = "Scores saved and job published for seekers. You can now match with candidates.";
+      await loadSeekers();
+    } catch (error) {
+      statusText.textContent = `Saved locally. Publish failed: ${error.message || error}`;
+    } finally {
+      saveButton.disabled = false;
       if (matchButton) matchButton.style.display = "inline-block";
     }
   });
@@ -573,6 +591,8 @@ function renderCandidates(matches) {
   matches.forEach((match) => {
     const div = document.createElement("div");
     div.className = "candidate-card";
+    const sourceTag =
+      match.source === "seeker" ? '<span class="source-tag">live</span>' : "";
     const tooltipHtml = `
       <div class="tooltip-grid">
         <div>EC: ${match.scores.effective_communicator}</div>
@@ -584,7 +604,7 @@ function renderCandidates(matches) {
       </div>
     `;
     div.innerHTML = `
-      <span>${match.name}</span>
+      <span>${escapeHtml(match.name)} ${sourceTag}</span>
       <span class="candidate-score">${match.match_score.toFixed(1)} / 100</span>
       <div class="tooltip">${tooltipHtml}</div>
     `;
@@ -596,6 +616,85 @@ function renderCandidates(matches) {
 function initApp() {
   renderHistory();
   loadSamples();
+  loadSeekers();
 }
 
-initApp();
+async function publishCurrentJob() {
+  if (!state.lastResult || !window.EmployerMatchSupabase?.isConfigured()) return;
+  const session = await window.EmployerMatchAuth.getSession();
+  if (!session) return;
+  const client = await window.EmployerMatchSupabase.getClient();
+  const { error } = await client.from("employer_jobs").insert({
+    employer_id: session.user.id,
+    title: jobTitle.value.trim() || state.lastResult.title || "Untitled JD",
+    jd_text: jobText.value.trim(),
+    weights: state.currentWeights,
+    status: "published",
+  });
+  if (error) throw error;
+}
+
+async function loadSeekers() {
+  const seekersList = document.getElementById("seekersList");
+  if (!seekersList || !window.EmployerMatchSupabase?.isConfigured()) return;
+
+  seekersList.classList.add("empty-list");
+  seekersList.textContent = "Loading seekers...";
+
+  try {
+    const client = await window.EmployerMatchSupabase.getClient();
+    const [{ data: demoRows, error: demoError }, { data: liveRows, error: liveError }] =
+      await Promise.all([
+        client.from("demo_seekers").select("name, scores").order("name"),
+        client
+          .from("seeker_passports")
+          .select("user_id, scores, status, profiles(display_name)")
+          .eq("status", "complete"),
+      ]);
+
+    if (demoError && !demoError.message.includes("does not exist")) throw demoError;
+    if (liveError) throw liveError;
+
+    const cards = [];
+    (demoRows || []).forEach((row) => {
+      cards.push({ name: row.name, source: "demo", scores: row.scores || {} });
+    });
+    (liveRows || []).forEach((row) => {
+      const name = row.profiles?.display_name || `Seeker ${String(row.user_id || "").slice(0, 8)}`;
+      cards.push({ name, source: "live", scores: row.scores || {} });
+    });
+
+    seekersList.innerHTML = "";
+    if (!cards.length) {
+      seekersList.textContent = "No seekers yet. Run supabase/seed.sql for demo users.";
+      return;
+    }
+
+    seekersList.classList.remove("empty-list");
+    cards.forEach((card) => {
+      const item = document.createElement("div");
+      item.className = "candidate-card";
+      const tag = card.source === "live" ? "live" : "demo";
+      const avg = COMPETENCY_ORDER.reduce((sum, key) => sum + Number(card.scores[key] || 0), 0) / 6;
+      item.innerHTML = `
+        <span>${escapeHtml(card.name)} <span class="source-tag">${tag}</span></span>
+        <span class="candidate-score">${avg.toFixed(0)} avg</span>
+      `;
+      seekersList.appendChild(item);
+    });
+  } catch (error) {
+    seekersList.classList.add("empty-list");
+    seekersList.textContent = error.message || "Failed to load seekers.";
+  }
+}
+
+const COMPETENCY_ORDER = [
+  "effective_communicator",
+  "global_citizen",
+  "creative_innovator",
+  "critical_thinker",
+  "reflective_future_focused",
+  "career_ready",
+];
+
+window.initApp = initApp;
