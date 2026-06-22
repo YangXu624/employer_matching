@@ -7,12 +7,14 @@ from typing import Any
 
 
 COMPETENCY_ORDER = [
-    "effective_communicator",
-    "global_citizen",
-    "creative_innovator",
-    "critical_thinker",
-    "reflective_future_focused",
-    "career_ready",
+    "career_self_development",
+    "communication",
+    "critical_thinking",
+    "equity_inclusion",
+    "leadership",
+    "professionalism",
+    "teamwork",
+    "technology",
 ]
 
 LEVEL_KEYS = ["1", "2", "3", "4", "5"]
@@ -54,7 +56,7 @@ def validate_rubric(raw: dict[str, Any]) -> Rubric:
     competency_order = meta.get("competency_order")
     if competency_order != COMPETENCY_ORDER:
         raise RubricValidationError(
-            "Rubric _meta.competency_order must match the fixed PathCredits order."
+            "Rubric _meta.competency_order must match the fixed NACE competency order."
         )
 
     level_descriptions: list[LevelDescription] = []

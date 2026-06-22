@@ -10,17 +10,19 @@ def test_cli_exits_successfully_with_sentence_transformer_pipeline(monkeypatch, 
         assert jd_path == Path("sample_jd.txt")
         return (
             ScoreResult(
-                weights={
-                    "effective_communicator": 20.0,
-                    "global_citizen": 10.0,
-                    "creative_innovator": 10.0,
-                    "critical_thinker": 20.0,
-                    "reflective_future_focused": 20.0,
-                    "career_ready": 20.0,
-                },
+                weights={competency_id: 12.5 for competency_id in [
+                    "career_self_development",
+                    "communication",
+                    "critical_thinking",
+                    "equity_inclusion",
+                    "leadership",
+                    "professionalism",
+                    "teamwork",
+                    "technology",
+                ]},
                 competencies=[
                     CompetencyScore(
-                        competency_id="effective_communicator",
+                        competency_id="communication",
                         level_similarities={level: 0.1 * level for level in range(6)},
                         matched_level=5,
                         peak_similarity=0.5,
@@ -38,7 +40,7 @@ def test_cli_exits_successfully_with_sentence_transformer_pipeline(monkeypatch, 
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
-    assert len(payload["weights"]) == 6
+    assert len(payload["weights"]) == 8
     assert round(sum(payload["weights"].values()), 6) == 100
     assert len(payload["competencies"]) == 1
     assert Path(payload["rubric_path"]).name == "rubric.json"

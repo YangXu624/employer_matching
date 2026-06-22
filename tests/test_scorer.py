@@ -76,7 +76,7 @@ def test_empty_jd_returns_graceful_uniform_fallback():
     assert set(result.weights) == set(COMPETENCY_ORDER)
 
 
-def test_scoring_returns_six_competency_results_with_weights():
+def test_scoring_returns_eight_competency_results_with_weights():
     result = score_job_description(
         "The role requires communication and client presentations. It also requires structured analysis.",
         make_test_rubric(),
@@ -86,7 +86,7 @@ def test_scoring_returns_six_competency_results_with_weights():
 
     assert result.used_uniform_fallback is False
     assert sum(result.weights.values()) == 100
-    assert len(result.competencies) == 6
+    assert len(result.competencies) == 8
     assert result.competencies[0].matched_level == 5
     assert result.competencies[0].peak_similarity == 1.0
     assert set(result.competencies[0].level_similarities) == {1, 2, 3, 4, 5}

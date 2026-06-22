@@ -18,12 +18,14 @@ STATIC_DIR = PROJECT_ROOT / "frontend"
 DEFAULT_SAMPLE_DIRS = [PROJECT_ROOT / "examples", PROJECT_ROOT / "examples" / "jds"]
 
 COMPETENCY_LABELS = {
-    "effective_communicator": "Effective Communicator",
-    "global_citizen": "Global Citizen",
-    "creative_innovator": "Creative Innovator",
-    "critical_thinker": "Critical Thinker",
-    "reflective_future_focused": "Reflective Future-Focused",
-    "career_ready": "Career Ready",
+    "career_self_development": "Career & Self-Development",
+    "communication": "Communication",
+    "critical_thinking": "Critical Thinking",
+    "equity_inclusion": "Equity & Inclusion",
+    "leadership": "Leadership",
+    "professionalism": "Professionalism",
+    "teamwork": "Teamwork",
+    "technology": "Technology",
 }
 
 
@@ -185,12 +187,8 @@ def load_candidates() -> list[dict]:
                     {
                         "name": row["name"],
                         "scores": {
-                            "effective_communicator": float(row["effective_communicator"]),
-                            "global_citizen": float(row["global_citizen"]),
-                            "creative_innovator": float(row["creative_innovator"]),
-                            "critical_thinker": float(row["critical_thinker"]),
-                            "reflective_future_focused": float(row["reflective_future_focused"]),
-                            "career_ready": float(row["career_ready"]),
+                            competency_id: float(row[competency_id])
+                            for competency_id in COMPETENCY_ORDER
                         },
                     }
                 )

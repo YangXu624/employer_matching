@@ -15,7 +15,11 @@ if api_key and api_key != "your_gemini_api_key_here":
 
 
 def build_prompt(jd_text: str, rubric: Rubric) -> str:
-    prompt = "You are an expert HR analyst and competency scorer. Your task is to evaluate the provided Job Description against a list of 6 competencies.\n\n"
+    count = len(COMPETENCY_ORDER)
+    prompt = (
+        f"You are an expert HR analyst and competency scorer. Your task is to evaluate "
+        f"the provided Job Description against {count} NACE career readiness competencies.\n\n"
+    )
     prompt += "For each competency, you must assign a level from 1 to 5 based on how strongly the JD demands that competency. The scale is:\n"
     prompt += "1 = Basic/incidental engagement\n"
     prompt += "2 = Routine, expected part of the role\n"
@@ -34,12 +38,12 @@ def build_prompt(jd_text: str, rubric: Rubric) -> str:
     prompt += "Evaluate the JD against each competency based *only* on the definitions provided. Return ONLY a valid JSON object matching this schema:\n"
     prompt += "{\n"
     prompt += '  "competencies": {\n'
-    prompt += '    "effective_communicator": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"},\n'
-    prompt += '    "global_citizen": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"},\n'
-    prompt += '    "creative_innovator": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"},\n'
-    prompt += '    "critical_thinker": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"},\n'
-    prompt += '    "reflective_future_focused": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"},\n'
-    prompt += '    "career_ready": {"level": [1-5], "confidence": [0.0-1.0], "reasoning": "short explanation"}\n'
+    for index, competency_id in enumerate(COMPETENCY_ORDER):
+        suffix = "," if index < len(COMPETENCY_ORDER) - 1 else ""
+        prompt += (
+            f'    "{competency_id}": {{"level": [1-5], "confidence": [0.0-1.0], '
+            f'"reasoning": "short explanation"}}{suffix}\n'
+        )
     prompt += "  }\n"
     prompt += "}\n"
     prompt += "Output strictly JSON, without markdown formatting."

@@ -8,16 +8,10 @@ from employer_match.rubric_store import COMPETENCY_ORDER
 
 def fake_score_text(jd_text):
     assert "Coordinate" in jd_text
+    weights = {competency_id: 12.5 for competency_id in COMPETENCY_ORDER}
     return (
         ScoreResult(
-            weights={
-                "effective_communicator": 20.0,
-                "global_citizen": 10.0,
-                "creative_innovator": 10.0,
-                "critical_thinker": 20.0,
-                "reflective_future_focused": 20.0,
-                "career_ready": 20.0,
-            },
+            weights=weights,
             competencies=[
                 CompetencyScore(
                     competency_id=competency_id,
@@ -55,8 +49,8 @@ def test_score_text_payload_shapes_dashboard_response():
     assert payload["title"] == "Coordinator"
     assert payload["overall_score"] == 100
     assert round(sum(payload["weights"].values()), 6) == 100
-    assert payload["competencies"][0]["label"] == "Effective Communicator"
-    assert payload["competencies"][0]["weight"] == 20.0
+    assert payload["competencies"][0]["label"] == "Career & Self-Development"
+    assert payload["competencies"][0]["weight"] == 12.5
 
 
 def test_score_text_payload_is_json_serializable():
@@ -71,12 +65,14 @@ def test_score_text_payload_is_json_serializable():
 
 def test_match_candidates_includes_user_facing_explanations():
     weights = {
-        "effective_communicator": 30,
-        "global_citizen": 5,
-        "creative_innovator": 5,
-        "critical_thinker": 30,
-        "reflective_future_focused": 10,
-        "career_ready": 20,
+        "career_self_development": 10,
+        "communication": 20,
+        "critical_thinking": 20,
+        "equity_inclusion": 5,
+        "leadership": 10,
+        "professionalism": 15,
+        "teamwork": 10,
+        "technology": 10,
     }
 
     matches = match_candidates(weights)

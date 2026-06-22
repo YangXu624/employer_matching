@@ -189,12 +189,14 @@ function updateDOM() {
   let totalWeight = 0;
 
   const acronyms = {
-    "effective_communicator": "EC",
-    "global_citizen": "GC",
-    "creative_innovator": "CI",
-    "critical_thinker": "CT",
-    "reflective_future_focused": "RFF",
-    "career_ready": "CR"
+    career_self_development: "CSD",
+    communication: "COM",
+    critical_thinking: "CT",
+    equity_inclusion: "EI",
+    leadership: "LDR",
+    professionalism: "PRO",
+    teamwork: "TW",
+    technology: "TECH",
   };
 
   state.lastResult.competencies.forEach((competency) => {
@@ -498,19 +500,23 @@ function renderMatchExplanation(match) {
 function renderCandidates(matches) {
   candidatesSection.style.display = "block";
   candidatesList.innerHTML = "";
+  const scoreLabels = {
+    career_self_development: "CSD",
+    communication: "COM",
+    critical_thinking: "CT",
+    equity_inclusion: "EI",
+    leadership: "LDR",
+    professionalism: "PRO",
+    teamwork: "TW",
+    technology: "TECH",
+  };
   matches.forEach(m => {
     const div = document.createElement("div");
     div.className = "candidate-card";
-    const tooltipHtml = `
-      <div class="tooltip-grid">
-        <div>EC: ${m.scores.effective_communicator}</div>
-        <div>GC: ${m.scores.global_citizen}</div>
-        <div>CI: ${m.scores.creative_innovator}</div>
-        <div>CT: ${m.scores.critical_thinker}</div>
-        <div>RFF: ${m.scores.reflective_future_focused}</div>
-        <div>CR: ${m.scores.career_ready}</div>
-      </div>
-    `;
+    const tooltipCells = Object.entries(m.scores || {})
+      .map(([id, score]) => `<div>${scoreLabels[id] || id}: ${score}</div>`)
+      .join("");
+    const tooltipHtml = `<div class="tooltip-grid">${tooltipCells}</div>`;
     div.innerHTML = `
       <div class="candidate-main">
         <span>${m.name}</span>
