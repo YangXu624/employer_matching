@@ -7,7 +7,7 @@ import sys
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 
 from backend.api.storage import list_checks, save_check  # noqa: E402
+from backend.db import JobValidationError, get_job_store  # noqa: E402
 from employer_match.web_app import llm_score_text_payload, load_sample_jds, match_candidates, score_text_payload  # noqa: E402
 
 
@@ -28,7 +29,8 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/health":
             self.write_json({"ok": True})
             return
@@ -37,6 +39,12 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/checks":
             self.write_json({"checks": list_checks()})
+            return
+        if path == "/api/jobs":
+            self.handle_list_jobs(parse_qs(parsed.query))
+            return
+        if path.startswith("/api/jobs/"):
+            self.handle_get_job(path[len("/api/jobs/"):])
             return
         self.serve_static(path)
 
@@ -85,7 +93,56 @@ class EmployerMatchApiHandler(BaseHTTPRequestHandler):
                 self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        if path == "/api/jobs":
+            self.handle_create_job(self.read_json())
+            return
+
         self.write_json({"error": "Not found"}, HTTPStatus.NOT_FOUND)
+
+    def handle_create_job(self, payload: dict) -> None:
+        try:
+            job = get_job_store().create_job(
+                title=str(payload.get("title", "Untitled JD")),
+                jd_text=str(payload.get("jd_text", "")),
+                weights=payload.get("weights", {}),
+                score=payload.get("score") or {},
+                status=str(payload.get("status", "published")),
+            )
+            self.write_json({"job": job}, HTTPStatus.CREATED)
+        except JobValidationError as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def handle_list_jobs(self, query: dict[str, list[str]]) -> None:
+        status_values = query.get("status", ["published"])
+        status = status_values[0] if status_values else "published"
+        if status.lower() in ("", "all"):
+            status = None
+        try:
+            limit = int(query.get("limit", ["100"])[0])
+        except (TypeError, ValueError):
+            limit = 100
+        try:
+            jobs = get_job_store().list_jobs(status=status, limit=limit)
+            self.write_json({"jobs": jobs})
+        except JobValidationError as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def handle_get_job(self, job_id: str) -> None:
+        job_id = job_id.strip("/")
+        if not job_id:
+            self.write_json({"error": "Missing job id"}, HTTPStatus.BAD_REQUEST)
+            return
+        try:
+            job = get_job_store().get_job(job_id)
+            self.write_json({"job": job})
+        except KeyError:
+            self.write_json({"error": "Job not found"}, HTTPStatus.NOT_FOUND)
+        except Exception as exc:
+            self.write_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))

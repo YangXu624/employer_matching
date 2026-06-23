@@ -449,12 +449,40 @@ if (resetButton) {
   });
 }
 
+async function saveJobToDatabase() {
+  const response = await fetch(apiUrl("/api/jobs"), {
+    method: "POST",
+    headers: apiHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      title: jobTitle.value,
+      jd_text: jobText.value,
+      weights: state.currentWeights,
+      score: state.lastResult,
+      status: "published",
+    }),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || "Failed to save job to database");
+  }
+  return payload.job;
+}
+
 if (saveButton) {
-  saveButton.addEventListener("click", () => {
-    if (state.lastResult) {
+  saveButton.addEventListener("click", async () => {
+    if (!state.lastResult) return;
+    saveButton.disabled = true;
+    statusText.textContent = "Saving job to database...";
+    try {
+      const job = await saveJobToDatabase();
+      // Keep local history as a cache; backend is the source of truth.
       saveHistory(state.lastResult);
-      statusText.textContent = "Scores saved! You can now match with candidates.";
+      statusText.textContent = `Job saved to database (id ${job.id}). You can now match with candidates.`;
       if (matchButton) matchButton.style.display = "inline-block";
+    } catch (error) {
+      statusText.textContent = `Save failed: ${error.message}`;
+    } finally {
+      saveButton.disabled = false;
     }
   });
 }
