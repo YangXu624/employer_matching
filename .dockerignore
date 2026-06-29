@@ -1,0 +1,34 @@
+# Keep the Docker build context small, fast, and free of secrets.
+# Anything listed here is NOT sent to the Docker engine or copied into the image.
+
+# Python virtual env (rebuilt inside the image from requirements.txt)
+.venv/
+venv/
+
+# Caches / build artifacts
+__pycache__/
+*.py[cod]
+.cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Local runtime data (SQLite DB lives here; we mount it as a volume instead)
+.data/
+
+# Secrets — never bake these into an image
+.env
+.env.*
+!.env.example
+
+# Git / editor / OS noise
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+
+# Docs and local-only pipelines not needed at runtime
+passport_agent/

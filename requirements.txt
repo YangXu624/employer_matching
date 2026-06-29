@@ -1,0 +1,16 @@
+# Runtime dependencies for the backend service (the container installs these).
+# Versions pinned to match the local .venv for reproducible builds.
+#
+# torch is pulled from PyTorch's CPU-only wheel index. The default PyPI build
+# bundles CUDA/GPU libraries (~2.5GB) we don't use; the CPU build is far smaller.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Core scoring stack
+numpy==2.4.6
+torch==2.12.0
+sentence-transformers==5.6.0
+transformers==5.12.1
+
+# LLM Check (Gemini) + .env loading
+google-generativeai==0.8.6
+python-dotenv==1.2.2

@@ -1,0 +1,33 @@
+# One-command local stack:  docker compose up --build
+# Stop with Ctrl+C, or run detached:  docker compose up -d   /   docker compose down
+
+services:
+  api:
+    # Build the image from the Dockerfile in this folder.
+    build: .
+    image: employer-match-api:latest
+    container_name: employer-match-api
+
+    # Map host port 8777 -> container port 8766 (host:container).
+    # After `up`, open http://127.0.0.1:8777 in your browser.
+    ports:
+      - "8777:8766"
+
+    # Inject secrets/config at RUNTIME (never baked into the image).
+    # JOB_STORE defaults to sqlite, so .env is optional here.
+    env_file:
+      - path: .env
+        required: false
+
+    # Persist data across container restarts using volumes:
+    #  - the SQLite jobs/checks DB written to /app/.data
+    #  - the downloaded embedding model (~400MB) so it's fetched only once
+    volumes:
+      - ./.data:/app/.data
+      - hf-cache:/app/.cache/huggingface
+
+    # Auto-restart if it crashes or the machine reboots (handy for a demo).
+    restart: unless-stopped
+
+volumes:
+  hf-cache:
